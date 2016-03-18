@@ -1,0 +1,101 @@
+<?php
+
+require_once 'formio.util.inc';
+
+/**
+ * Implements hook_init().
+ */
+function formio_init() {
+  $token = formio_token();
+  drupal_add_http_header('x-jwt-token', $token);
+  formio_load_assets();
+}
+
+function formio_ctools_plugin_directory($owner, $plugin_type) {
+  if ($owner == 'ctools' && $plugin_type == 'content_types') {
+    return 'plugins/content_types';
+  }
+}
+
+/**
+ * Implements hook_menu().
+ */
+function formio_menu() {
+  $items = array();
+  $items['admin/formio'] = array(
+    'title' => t('Form IO'),
+    'description' => t('Form IO Settings'),
+    'page callback' => 'system_admin_menu_block_page',
+    'access arguments' => array('administer site configuration'),
+    'file' => 'system.admin.inc',
+    'file path' => drupal_get_path('module', 'system'),
+
+  );
+  $items['admin/formio/settings'] = array(
+    'title' => t('Settings'),
+    'description' => t('Configure settings for Form IO'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('formio_settings_form'),
+    'access arguments' => array('administer site configuration'),
+    'weight' => 0,
+    'file' => 'formio.admin.inc',
+
+  );$items['admin/formio/presets'] = array(
+    'title' => t('Presets'),
+    'description' => t('Create Presets'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('formio_presets_form'),
+    'access arguments' => array('administer site configuration'),
+    'weight' => 1,
+    'file' => 'formio.admin.inc',
+
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_block_info().
+ */
+function formio_block_info() {
+  return array(
+    'formio_presets' => array(
+      'info' => t('Presets'),
+      'status' => 1,
+    ),
+  );
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function formio_block_view($delta = '', $path) {
+  ctools_include('content');
+  $block = array();
+  switch ($delta) {
+    case 'formio_presets':
+      $args = array('path' => $path);
+
+      $data = ctools_content_render('form', 'form', NULL, array(), $args, array());
+
+      $content = theme('formio_form_wrapper', $data->content);
+
+      $block['subject'] = '';
+      $block['content'] = array(
+        '#markup' => $content,
+      );
+      break;
+  }
+
+  return $block;
+}
+
+/**
+ * Implements hook_forms().
+ */
+function formio_forms($form_id, $args) {
+  if ($formio = formio_get_forms()) {
+
+  }
+}
+
+function formio_preprocess_formio_form_wrapper(&$vars) {}

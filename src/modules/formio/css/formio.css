@@ -1,0 +1,12 @@
+#formio-presets-form button#edit-submit {
+  margin-top: 20px;
+}
+
+#formio-presets-form #formio-form-display form {
+  background-color: #F5F5F5;
+  padding: 20px;
+}
+
+#formio-presets-form #formio-form-display #form-group-submit {
+  margin-top: 20px;
+}
