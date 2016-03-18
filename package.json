@@ -1,0 +1,15 @@
+{
+  "name": "formio_drupal",
+  "description": "Form IO forms in Drupal",
+  "version": "0.1.0",
+  "engines": {
+    "node": ">=0.12.0",
+    "npm": "2.x"
+  },
+  "private": true,
+  "dependencies": {
+    "grunt": "~0.4.5",
+    "grunt-drupal-tasks": "~0.10.1",
+    "zombie": "^2.5.1"
+  }
+}
