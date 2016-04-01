@@ -1,6 +1,6 @@
 {
   "name": "formio_drupal",
-  "description": "Form IO forms in Drupal",
+  "description": "Form.io in Drupal",
   "version": "0.1.0",
   "engines": {
     "node": ">=0.12.0",

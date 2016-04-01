@@ -33,6 +33,8 @@ projects[entity][patches][7] = "http://drupal.org/files/issues/entity_unsupporte
 projects[entity][patches][8] = "https://www.drupal.org/files/issues/add_create_op_to_metadata_comment_access-2236229-1.patch"
 projects[entity][patches][9] = "https://www.drupal.org/files/issues/entity_undefined_entity_get_info-2289693-2.patch"
 
+projects[features][version] = 2.8
+
 projects[panels][version] = "3.5"
 projects[panels][patches][0] = "https://www.drupal.org/files/issues/panels-export-indentation-2448825-1.patch"
 projects[panels][patches][1] = "https://www.drupal.org/files/issues/panels-focus-add-content-tab-2390803-13.patch"
@@ -73,6 +75,10 @@ projects[views][patches][9] = "https://www.drupal.org/files/issues/1735096-views
 projects[views][patches][10] = "https://www.drupal.org/files/issues/2411922-views-group_name-3.patch"
 projects[views][patches][11] = "https://www.drupal.org/files/issues/2473389-views-exta-args-3.patch"
 
+;;;;; JUST FOR FUN ;;;;;
+projects[plug][version] = 1.1
+projects[plug_config][version] = 1.x-dev
+projects[plug_field][version] = 1.x-dev
 
 ;;; Theme
 projects[bootstrap][version] = "3.5"

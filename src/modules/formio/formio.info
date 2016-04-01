@@ -2,5 +2,6 @@ name = form.io
 description = Form.io in Drupal
 package = form.io
 core = 7.x
-;dependencies[] = restful
+configure = admin/config/formio/settings
+dependencies[] = ctools
 files[] = plugins/base/Formio.class.php
