@@ -1,56 +1,204 @@
 <?php
 
-require_once 'formio.util.inc';
+require_once 'includes/formio.util.inc';
+require_once 'includes/formio.settings.inc';
+require_once 'includes/formio.action.forms.inc';
 
 /**
- * Implements hook_init().
+ * Implements hook_ctools_plugin_api().
+ *
+ * Tell CTools that we support the formio API.
  */
-function formio_init() {
-  $token = formio_token();
-  drupal_add_http_header('x-jwt-token', $token);
-  formio_load_assets();
+function formio_ctools_plugin_api($owner, $api) {
+  if ($owner == 'formio' && $api == 'formio') {
+    return array('version' => 1);
+  }
 }
 
+/**
+ * Implements hook_ctools_plugin_directory().
+ */
 function formio_ctools_plugin_directory($owner, $plugin_type) {
   if ($owner == 'ctools' && $plugin_type == 'content_types') {
     return 'plugins/content_types';
   }
+  if ($owner == 'ctools' && $plugin_type =='export_ui') {
+    return 'plugins/export_ui';
+  }
+}
+
+function formio_handler_load($handler) {
+  return formio_form_plugin_get_handler($handler);
+//  $function = 'formio_' . $handler . '_plugin_get_handler';
+//  if (function_exists($function)) {
+//    return $function($plugin);
+//  }
+}
+
+function formio_get_form_plugins() {
+  ctools_include('plugins');
+  return ctools_get_plugins('ctools', 'export_ui', 'formio_defaults');
+}
+
+function formio_get_plugin_with_hook($hook) {
+  $objects = array();
+  $plugins = formio_get_form_plugins();
+//  foreach ($plugins as $name => $plugin) {
+    if (!empty($plugin['hooks'][$hook])) {
+      if ($handler = formio_form_plugin_get_handler($plugin)) {
+        $objects['formio_defaults'] = $handler;
+      }
+    }
+//  }
+
+  return $objects;
+}
+
+function formio_form_plugin_get_handler($plugin) {
+  // Can't load the default, it's abstract.
+  if ($plugin == 'default') {
+    return;
+  }
+
+  // @todo: Implement caching.
+
+  if (is_string($plugin)) {
+    $plugin = formio_get_plugin_by_name($plugin);
+    if (!$plugin) {
+      return FALSE;
+    }
+  }
+}
+
+function formio_get_plugin_by_name($plugin) {
+  ctools_include('plugins');
+  return ctools_get_plugins('formio', 'form', $plugin);
 }
 
 /**
  * Implements hook_menu().
  */
 function formio_menu() {
+
   $items = array();
-  $items['admin/formio'] = array(
-    'title' => t('Form IO'),
-    'description' => t('Form IO Settings'),
-    'page callback' => 'system_admin_menu_block_page',
-    'access arguments' => array('administer site configuration'),
-    'file' => 'system.admin.inc',
-    'file path' => drupal_get_path('module', 'system'),
 
+  $items['action/url/%'] = array(
+    'page callback' => 'formio_get_action_url',
+    'page arguments' => array(0, 2),
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
   );
-  $items['admin/formio/settings'] = array(
-    'title' => t('Settings'),
-    'description' => t('Configure settings for Form IO'),
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('formio_settings_form'),
-    'access arguments' => array('administer site configuration'),
-    'weight' => 0,
-    'file' => 'formio.admin.inc',
-
-  );$items['admin/formio/presets'] = array(
-    'title' => t('Presets'),
-    'description' => t('Create Presets'),
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('formio_presets_form'),
-    'access arguments' => array('administer site configuration'),
-    'weight' => 1,
-    'file' => 'formio.admin.inc',
-
+  $items['system/formio_ajax'] = array(
+    'title' => 'Ajax callback',
+    'page callback' => 'formio_ajax_form_callback',
+    'delivery callback' => 'ajax_deliver',
+    'access callback' => TRUE,
+    'theme callback' => 'ajax_base_page_theme',
+    'type' => MENU_CALLBACK,
+    'file path' => 'includes',
+    'file' => 'form.inc',
   );
+  $items['formio/autocomplete'] = array(
+    'page callback' => 'formio_ajax_autocomplete',
+    'type' => MENU_CALLBACK,
+    'access arguments' => array('administer formio'),
+  );
+
+  // Admin menus.
+  ctools_include('formio.admin', 'formio');
+  formio_admin_menu_hook($items);
+
   return $items;
+}
+
+function formio_ajax_autocomplete($string = '') {
+  $args = func_get_args();
+  if (!empty($args)) {
+    module_invoke_all('io_ajax_autocomplete_' . 'some_arg');
+  }
+  else {
+    if ($string) {
+      $result = db_select('formio_preset', 'fp')
+        ->fields('fp', array('_id', 'title'))
+        ->condition('title', db_like($string) . '%', 'LIKE')
+        ->range(0, 25)
+        ->execute();
+      foreach ($result as $formio) {
+        $matches[$formio->title . "[id:  . $formio->_id]"] = check_plain($formio->title);
+      }
+    }
+    drupal_json_output($matches);
+  }
+}
+
+/**
+ * Use our own ajax callback for forms.
+ *
+ * We use this instead of what 'system/ajax' returns. This is just a modified
+ * version of it.
+ *
+ * @see ajax_form_callback().
+ *
+ * @return array|mixed
+ */
+function formio_ajax_form_callback() {
+  list($form, $form_state, $form_id, $form_build_id, $commands) = ajax_get_form();
+  drupal_process_form($form['#form_id'], $form, $form_state);
+
+  // We need to return the part of the form (or some other content) that needs
+  // to be re-rendered so the browser can update the page with changed content.
+  // Since this is the generic menu callback used by many Ajax elements, it is
+  // up to the #ajax['callback'] function of the element (may or may not be a
+  // button) that triggered the Ajax request to determine what needs to be
+  // rendered.
+  if (!empty($form_state['triggering_element'])) {
+    $callback = $form_state['triggering_element']['#ajax']['callback'];
+  }
+  if (isset($callback) && is_array($callback)) {
+    $object = array_shift($callback);
+    $function = array_shift($callback);
+
+    if (method_exists($object, $function)) {
+      $class = get_class($object);
+      $result = call_user_func(array($class, $function), $form, $form_state);
+    }
+
+  }
+  else {
+    if (!empty($callback) && function_exists($callback)) {
+      $result = $callback($form, $form_state);
+    }
+  }
+
+  if (!(is_array($result) && isset($result['#type']) && $result['#type'] == 'ajax')) {
+    // Turn the response into a #type=ajax array if it isn't one already.
+    $result = array(
+      '#type' => 'ajax',
+      '#commands' => ajax_prepare_response($result),
+    );
+  }
+
+  $result['#commands'] = array_merge($commands, $result['#commands']);
+
+  return $result;
+}
+
+/**
+ * @todo: TESTING...
+ * @param $type
+ * @param $data
+ */
+function formio_get_action_url($type, $data) {
+  if ($data) {
+
+  }
+}
+
+/**
+ *
+ */
+function formio_preset_title($preset) {
+  return $preset->title;
 }
 
 /**
@@ -58,8 +206,8 @@ function formio_menu() {
  */
 function formio_block_info() {
   return array(
-    'formio_presets' => array(
-      'info' => t('Presets'),
+    'formio_form' => array(
+      'info' => t('Preset'),
       'status' => 1,
     ),
   );
@@ -72,10 +220,10 @@ function formio_block_view($delta = '', $path) {
   ctools_include('content');
   $block = array();
   switch ($delta) {
-    case 'formio_presets':
+    case 'formio_form':
       $args = array('path' => $path);
 
-      $data = ctools_content_render('form', 'form', NULL, array(), $args, array());
+      $data = ctools_content_render('formio_form', 'formio_form', NULL, array(), $args, array());
 
       $content = theme('formio_form_wrapper', $data->content);
 
@@ -90,12 +238,41 @@ function formio_block_view($delta = '', $path) {
 }
 
 /**
+ * Implements hook_io_preset_action_info().
+ */
+function formio_io_preset_action_info() {
+  return array(
+    'default' => t('Send to formio'),
+
+  );
+}
+
+/**
  * Implements hook_forms().
  */
 function formio_forms($form_id, $args) {
-  if ($formio = formio_get_forms()) {
+  $forms = array();
+  if (strncmp($form_id, 'formio_form_', 12) === 0) {
+    $forms[$form_id] = array(
+      'callback' => 'formio_form_render',
+      'callback arguments' => array('args' => array($form_id, $args)),
+    );
+  }
+  else {
 
   }
+  return $forms;
 }
 
-function formio_preprocess_formio_form_wrapper(&$vars) {}
+function formio_form_render($form, &$form_state, $args) {
+  $form_id = array_shift($args);
+  $args = array_shift($args);
+
+  if (isset($form_id)) {
+    $function = $form_id . '_form';
+    if (function_exists($function)) {
+      $function($form, $form_state, $args);
+    }
+  }
+  return $form;
+}

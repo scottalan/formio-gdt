@@ -1,4 +1,5 @@
 token
+db
 # Files produced by bad patch & diff runs
 *~*~
 *.rej
