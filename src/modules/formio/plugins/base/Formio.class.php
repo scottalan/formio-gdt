@@ -26,7 +26,7 @@ abstract class FormioDefaults {
    */
   private function getToken() {
     // If this doesn't work go and get a new one. (May Expire).
-    $token = variable_get('formio_project_api_key', FALSE);
+    $token = trim(variable_get('formio_project_api_key', FALSE));
     if (!isset($token) || empty($token)) {
       drupal_set_message(t('You need a token file!'), 'error');
     }
@@ -79,7 +79,7 @@ class FormioRequest extends FormioDefaults{
    * @param string $operation
    */
   public function __construct($operation = 'GET') {
-    $this->project = variable_get('formio_project_url', NULL);
+    $this->project = trim(variable_get('formio_project_url', NULL));
     $this->header = array('headers' => $this->setHeader());
     $this->operation = $operation;
     $this->params = array();
