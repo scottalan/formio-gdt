@@ -37,7 +37,7 @@ function formio_schema_1() {
       'name' => array(
         'type' => 'varchar',
         'length' => '255',
-        'description' => 'Unique ID for presets. Used to identify them programmatically.',
+        'description' => 'Unique ID for the preset.',
       ),
       'pid' => array(
         'type' => 'serial',

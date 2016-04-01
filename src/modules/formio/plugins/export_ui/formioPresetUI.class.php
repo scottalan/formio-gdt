@@ -1,24 +1,29 @@
 <?php
 
-class formioPresetUI extends ctools_export_ui {
+class FormioPresetUI extends ctools_export_ui {
 
   public function init($plugin) {
-    ctools_include('export');
-    $this->plugin = $plugin;
+    parent::init($plugin);
   }
 
   public function edit_form(&$form, &$form_state) {
 
     parent::edit_form($form, $form_state);
 
-    $this->formio_form_presets_form($form, $form_state);
+    $this->formio_form_preset_form($form, $form_state);
+    // Add the action form.
+    $this->formio_form_action_form($form, $form_state);
+  }
 
+  public function edit_page($js, $input, $item, $step = NULL) {
+
+    return parent::edit_page($js, $input, $item, $step);
 
   }
 
   public function edit_form_submit(&$form, &$form_state) {
 
-    $this->formio_form_presets_form_submit($form, $form_state);
+    $this->formio_form_preset_form_submit($form, $form_state);
   }
 
   public function hook_menu(&$items) {
@@ -27,7 +32,7 @@ class formioPresetUI extends ctools_export_ui {
   }
 
   /**
-   * Forms used for presets.
+   * Forms used for preset.
    *
    * @param bool $reset
    * @return array
@@ -62,7 +67,7 @@ class formioPresetUI extends ctools_export_ui {
    * @return array
    *   Form containing preset selections.
    */
-  public function formio_form_presets_form(&$form, &$form_state) {
+  public function formio_form_preset_form(&$form, &$form_state) {
 
     $formio = $this->formio_get_forms();
     $forms = $formio->fetchOptions();
@@ -84,7 +89,7 @@ class formioPresetUI extends ctools_export_ui {
       // Placeholder for rendered formio form.
       $form['formio_render'] = array(
         '#type' => 'fieldset',
-        '#title' => t('Formio'),
+        '#title' => t('Form.io'),
         '#states' => array(
           'invisible' => array(
             ':input[name="formio_form"]' => array('value' => '_none'),
@@ -95,26 +100,24 @@ class formioPresetUI extends ctools_export_ui {
         '#markup' => '<div id="formio-form-render"></div>',
       );
 
-      $form['formio_presets'] = array(
+      $form['formio_preset'] = array(
         '#type' => 'fieldset',
         '#title' => t('Preset Options'),
       );
-      $form['formio_presets']['formio_form'] = array(
-        '#title' => t('Form IOs'),
+      $form['formio_preset']['formio_form'] = array(
+        '#title' => t('Form.io Form'),
         '#type' => 'select',
         '#options' => $options,
         '#default_value' => isset($form_state['item']->_id) ? $form_state['item']->_id : '',
-        '#prefix' => '<div id="formio-presets-form">',
+        '#prefix' => '<div id="formio-preset-form">',
         '#suffix' => '</div>',
         '#ajax' => array(
-          'callback' => array($this, 'formio_form_presets_ajax'),
+          'callback' => array($this, 'formio_form_preset_ajax'),
           'wrapper' => 'formio-form-render',
           'path' => 'system/formio_ajax',
           'method' => 'replace',
         ),
       );
-
-      $this->formio_form_action_form($form, $form_state);
     }
   }
 
@@ -131,7 +134,7 @@ class formioPresetUI extends ctools_export_ui {
    * @return array
    *   Ajax commands.
    */
-  public static function formio_form_presets_ajax($form, $form_state) {
+  public static function formio_form_preset_ajax($form, $form_state) {
     $commands = array();
     // The form to target via the api.
     $path =  $form_state['item']->api_path;
@@ -144,7 +147,7 @@ class formioPresetUI extends ctools_export_ui {
     $get_form = drupal_get_form('formio_form_action');
     // Make sure we don't duplicate the form.
     $commands[] = ajax_command_remove('#formio-form-action');
-    $commands[] = ajax_command_append('#formio-presets-form', render($get_form));
+    $commands[] = ajax_command_append('#formio-preset-form', render($get_form));
 
     // Passed to: 'Drupal.ajax.prototype.commands'.
     $commands[] = array(
@@ -162,10 +165,11 @@ class formioPresetUI extends ctools_export_ui {
    * ACTION FORM.
    */
   public function formio_form_action_form(&$form, &$form_state) {
-    $form['formio_presets']['formio_action'] = array(
+    $form['formio_preset']['formio_action'] = array(
       '#title' => t('Action'),
       '#type' => 'select',
       '#options' => $this->formio_get_preset_actions(),
+      '#default_value' => isset($form_state['item']->action) ? $form_state['item']->action : '',
       '#prefix' => '<div id="formio-action">',
       '#suffix' => '</div>',
       '#states' => array(
@@ -175,7 +179,7 @@ class formioPresetUI extends ctools_export_ui {
       ),
       '#ajax' => array(
         'callback' => array($this, 'formio_form_action_ajax'),
-        'wrapper' => 'formio-presets-form',
+        'wrapper' => 'formio-preset-form',
         'path' => 'system/formio_ajax',
         'method' => 'append',
       ),
@@ -213,7 +217,7 @@ class formioPresetUI extends ctools_export_ui {
    * @param $form
    * @param $form_state
    */
-  public function formio_form_presets_form_submit($form, &$form_state) {
+  public function formio_form_preset_form_submit($form, &$form_state) {
     // Transfer data from the form to the $item based upon schema values.
     $schema = ctools_export_get_schema($this->plugin['schema']);
 

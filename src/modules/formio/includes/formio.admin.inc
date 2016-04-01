@@ -9,8 +9,8 @@ function formio_admin_menu_hook(&$items) {
     'file' => 'includes/formio.admin.inc',
   );
   $items['admin/config/formio'] = array(
-    'title' => 'Form IO',
-    'description' => 'Manage Form IO Presets',
+    'title' => 'Form.io',
+    'description' => 'Manage form.io presets',
     'weight' => -10,
   ) + $admin_base;
 

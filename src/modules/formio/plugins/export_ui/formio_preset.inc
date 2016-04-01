@@ -15,21 +15,21 @@ $plugin = array(
     // 'admin/structure/formio/preset/add', etc.
     // @see ctools_export_ui_plugin_base_path().
     'menu item' => 'formio',
-    'menu title' => 'Form.io',
-    'menu description' => 'Form.io preset management.',
+    'menu title' => 'form.io',
+    'menu description' => 'Form.IO preset management.',
     'items' => array(),
   ),
 
   // Define user interface texts.
-  'title singular' => t('form.io preset'),
-  'title plural' => t('form.io presets'),
-  'title singular proper' => t('Form.io Preset'),
-  'title plural proper' => t('Form.io Presets'),
+  'title singular' => t('Form.IO preset'),
+  'title plural' => t('Form.IO presets'),
+  'title singular proper' => t('Form.IO Preset'),
+  'title plural proper' => t('Form.IO Presets'),
 
   'ajax_store' => array(),
 
   'handler' => array(
-    'class' => 'formioPresetUI',
+    'class' => 'FormioPresetUI',
     'parent' => 'ctools_export_ui',
   ),
 
