@@ -44,7 +44,7 @@ function formio_admin_settings($form, &$form_state) {
     '#title' => t('Project API Key'),
     '#type' => 'textfield',
     // @todo: Remove this when we use an actual api key, this is for token.
-    '#maxlength' => 350,
+    '#maxlength' => 1000,
     '#description' => t('Enter your Form.io project API key'),
     '#default_value' => variable_get('formio_project_api_key', ''),
   );
