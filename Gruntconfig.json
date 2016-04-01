@@ -15,9 +15,6 @@
       "bin/**"
     ]
   },
-  "phpcs": {
-    "path": "vendor/bin/phpcs"
-  },
   "phpmd": {
     "path": "vendor/bin/phpmd"
   },
