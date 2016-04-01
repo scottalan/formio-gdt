@@ -14,17 +14,17 @@ $plugin = array(
     // is 'admin/structure/'. This will give us 'admin/structure/formio/preset',
     // 'admin/structure/formio/preset/add', etc.
     // @see ctools_export_ui_plugin_base_path().
-    'menu item' => 'formio-preset',
-    'menu title' => 'Form IO',
-    'menu description' => 'Formio presets management.',
+    'menu item' => 'formio',
+    'menu title' => 'Form.io',
+    'menu description' => 'Form.io preset management.',
     'items' => array(),
   ),
 
   // Define user interface texts.
-  'title singular' => t('formio preset'),
-  'title plural' => t('formio presets'),
-  'title singular proper' => t('Form IO Preset'),
-  'title plural proper' => t('Form IO Presets'),
+  'title singular' => t('form.io preset'),
+  'title plural' => t('form.io presets'),
+  'title singular proper' => t('Form.io Preset'),
+  'title plural proper' => t('Form.io Presets'),
 
   'ajax_store' => array(),
 
