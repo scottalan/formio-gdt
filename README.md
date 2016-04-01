@@ -28,3 +28,24 @@ and operational management of the application code. A build process downloads an
 ## Get Oriented
 
 * To learn about available commands run `grunt help`.
+
+## Settings.php
+
+* Add a `settings.local.php` file in `src/sites/default/`.
+* Add your `$database = array();` to the file.
+
+        $databases = array (
+          'default' =>
+            array (
+              'default' =>
+                array (
+                  'database' => 'formio',
+                  'username' => 'USERNAME',
+                  'password' => 'PASSWORD',
+                  'host' => 'localhost',
+                  'port' => '',
+                  'driver' => 'mysql',
+                  'prefix' => '',
+                ),
+            ),
+        );
