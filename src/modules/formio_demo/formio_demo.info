@@ -1,0 +1,4 @@
+name = Form.io Demo
+description = Demo feature for form.io.
+package = form.io
+core = 7.x
