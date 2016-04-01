@@ -212,21 +212,7 @@
  *   );
  * @endcode
  */
-$databases = array (
-  'default' => 
-  array (
-    'default' => 
-    array (
-      'database' => 'formio',
-      'username' => 'scott',
-      'password' => 'scottlocal',
-      'host' => '1.3.3.1',
-      'port' => '',
-      'driver' => 'mysql',
-      'prefix' => '',
-    ),
-  ),
-);
+$databases = array ();
 
 /**
  * Access control for update.php script.
@@ -598,3 +584,6 @@ $conf['404_fast_html'] = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML+RDFa 1.0//EN"
  * Remove the leading hash sign to enable.
  */
 # $conf['theme_debug'] = TRUE;
+
+// Local settings.
+require __DIR__ . '/../settings.local.php';

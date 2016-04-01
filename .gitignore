@@ -1,5 +1,9 @@
-token
+# Directory to store db dumps
 db
+
+# Local settings file
+settings.local.php
+
 # Files produced by bad patch & diff runs
 *~*~
 *.rej
