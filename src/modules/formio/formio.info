@@ -1,8 +1,6 @@
-name = Form IO
-description =
-package = Form IO form in Drupal
+name = form.io
+description = Form.io in Drupal
+package = form.io
 core = 7.x
-
 ;dependencies[] = restful
-
 files[] = plugins/base/Formio.class.php
