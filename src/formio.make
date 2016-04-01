@@ -5,7 +5,6 @@ defaults[projects][subdir] = "contrib"
 defaults[projects][type] = "module"
 
 ;; Project-specific Dependencies
-
 projects[views_bulk_operations][version] = "3.3"
 
 projects[admin_views][version] = "1.5"
@@ -53,13 +52,12 @@ projects[panelizer][download][revision] = 6b76359
 projects[panelizer][patch][2514068] = https://www.drupal.org/files/issues/2514068-panelizer-cache_key-2.patch
 projects[panelizer][patch][1549608] = https://www.drupal.org/files/issues/1549608-panelizer-cache-24.patch
 
-
 projects[paragraphs][version] = "1.0-rc4"
 projects[paragraphs][patches][0] = "https://www.drupal.org/files/issues/paragraphs-instructions_setting-2458801-9.patch"
 projects[paragraphs][patches][1] = "https://www.drupal.org/files/issues/paragraphs-modal_targets_wrong_id-2481627-3.patch"
 projects[paragraphs][patches][2] = "https://www.drupal.org/files/issues/2560601-paragraphs-join_extra-2.patch"
 
-projects[restws][version] = "2.4"
+projects[restful][version] = "2.7"
 
 projects[views][version] = "3.11"
 projects[views][patches][0] = "http://drupal.org/files/views-exposed-sorts-2037469-1.patch"
@@ -75,7 +73,7 @@ projects[views][patches][9] = "https://www.drupal.org/files/issues/1735096-views
 projects[views][patches][10] = "https://www.drupal.org/files/issues/2411922-views-group_name-3.patch"
 projects[views][patches][11] = "https://www.drupal.org/files/issues/2473389-views-exta-args-3.patch"
 
-;;; Theme
 
+;;; Theme
 projects[bootstrap][version] = "3.5"
 projects[bootstrap][type] = "theme"
