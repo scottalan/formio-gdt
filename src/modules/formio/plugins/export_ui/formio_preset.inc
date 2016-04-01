@@ -14,7 +14,7 @@ $plugin = array(
     // is 'admin/structure/'. This will give us 'admin/structure/formio/preset',
     // 'admin/structure/formio/preset/add', etc.
     // @see ctools_export_ui_plugin_base_path().
-    'menu item' => 'formio/preset',
+    'menu item' => 'formio-preset',
     'menu title' => 'Form IO',
     'menu description' => 'Formio presets management.',
     'items' => array(),
