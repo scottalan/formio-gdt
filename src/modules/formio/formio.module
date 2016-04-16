@@ -1,7 +1,5 @@
 <?php
 
-require_once 'includes/formio.actions.inc';
-
 define('FORMIO_BLOB', 'data');
 
 /**
