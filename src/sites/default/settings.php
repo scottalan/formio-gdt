@@ -586,4 +586,6 @@ $conf['404_fast_html'] = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML+RDFa 1.0//EN"
 # $conf['theme_debug'] = TRUE;
 
 // Local settings.
-require __DIR__ . '/../settings.local.php';
+if (file_exists(DRUPAL_ROOT . '/sites/settings.local.php')) {
+  require_once DRUPAL_ROOT . '/sites/settings.local.php';
+}
