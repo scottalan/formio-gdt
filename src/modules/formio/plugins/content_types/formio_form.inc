@@ -49,6 +49,18 @@ function formio_form_content_type_edit_form($form, &$form_state) {
     ),
   );
 
+  // @todo: autocomplete.
+//  $form['formio']['formio_embed'] = array(
+//    '#type' => 'textfield',
+//    '#autocomplete_path' => 'formio/autocomplete',
+//    '#description' => t('Embed formio form in a page.'),
+//    '#default_value' => $conf['formio_embed'],
+//    '#ajax' => array(
+//      'callback' => 'formio_display_embed_ajax_callback',
+//      'wrapper' => 'formio_form_display',
+//    ),
+//  );
+
   return $form;
 }
 
