@@ -1,0 +1,11 @@
+<?php
+
+function formio_demo_install() {
+  formio_setup_demo();
+}
+
+function formio_setup_demo() {
+  theme_enable(array('bootstrap'));
+  theme_disable(array('bartik'));
+  module_disable(array('overlay'));
+}
