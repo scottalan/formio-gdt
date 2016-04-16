@@ -55,24 +55,46 @@ function formio_menu() {
   return $items;
 }
 
-function formio_ajax_autocomplete($string = '') {
-  $args = func_get_args();
-  if (!empty($args)) {
-    module_invoke_all('io_ajax_autocomplete_' . 'some_arg');
+function formio_preprocess_formio_form(&$vars) {
+  $form = &$vars['form'];
+  $vars['_id'] = $form['id'];
+  $project = parse_url(trim(variable_get('formio_project_url', NULL)));
+  list($vars['project_hash']) = explode('.', $project['host']);
+  $vars['module_path'] = drupal_get_path('module', 'formio');
+  $vars['bootswatch_theme'] = ($form['use_theme']) ? '&theme=' . $form['theme'] : '';
+}
+
+/**
+ * Implements hook_block_info().
+ */
+function formio_block_info() {
+  return array(
+    'formio_form' => array(
+      'info' => t('Preset'),
+      'status' => 1,
+    ),
+  );
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function formio_block_view($delta = '', $path) {
+  ctools_include('content');
+  $block = array();
+  switch ($delta) {
+    case 'formio_form':
+      $args = array('path' => $path);
+      $data = ctools_content_render('formio_form', 'formio_form', NULL, array(), $args, array());
+      $content = theme('formio_form', $data->content);
+      $block['subject'] = '';
+      $block['content'] = array(
+        '#markup' => $content,
+      );
+      break;
   }
-  else {
-    if ($string) {
-      $result = db_select('formio_preset', 'fp')
-        ->fields('fp', array('_id', 'title'))
-        ->condition('title', db_like($string) . '%', 'LIKE')
-        ->range(0, 25)
-        ->execute();
-      foreach ($result as $formio) {
-        $matches[$formio->title . "[id:  . $formio->_id]"] = check_plain($formio->title);
-      }
-    }
-    drupal_json_output($matches);
-  }
+
+  return $block;
 }
 
 /**
@@ -87,14 +109,9 @@ function formio_ajax_autocomplete($string = '') {
  */
 function formio_ajax_form_callback() {
   list($form, $form_state, $form_id, $form_build_id, $commands) = ajax_get_form();
+  ctools_include('content');
   drupal_process_form($form['#form_id'], $form, $form_state);
 
-  // We need to return the part of the form (or some other content) that needs
-  // to be re-rendered so the browser can update the page with changed content.
-  // Since this is the generic menu callback used by many Ajax elements, it is
-  // up to the #ajax['callback'] function of the element (may or may not be a
-  // button) that triggered the Ajax request to determine what needs to be
-  // rendered.
   if (!empty($form_state['triggering_element'])) {
     $callback = $form_state['triggering_element']['#ajax']['callback'];
   }
@@ -127,68 +144,24 @@ function formio_ajax_form_callback() {
   return $result;
 }
 
-/**
- * @todo: TESTING...
- * @param $type
- * @param $data
- */
-function formio_get_action_url($type, $data) {
-  if ($data) {
-
+function formio_ajax_autocomplete($string = '') {
+  $args = func_get_args();
+  if (!empty($args)) {
+    module_invoke_all('io_ajax_autocomplete_' . 'some_arg');
   }
-}
-
-/**
- *
- */
-function formio_preset_title($preset) {
-  return $preset->title;
-}
-
-/**
- * Implements hook_block_info().
- */
-function formio_block_info() {
-  return array(
-    'formio_form' => array(
-      'info' => t('Preset'),
-      'status' => 1,
-    ),
-  );
-}
-
-/**
- * Implements hook_block_view().
- */
-function formio_block_view($delta = '', $path) {
-  ctools_include('content');
-  $block = array();
-  switch ($delta) {
-    case 'formio_form':
-      $args = array('path' => $path);
-
-      $data = ctools_content_render('formio_form', 'formio_form', NULL, array(), $args, array());
-
-      $content = theme('formio_form_wrapper', $data->content);
-
-      $block['subject'] = '';
-      $block['content'] = array(
-        '#markup' => $content,
-      );
-      break;
+  else {
+    if ($string) {
+      $result = db_select('formio_preset', 'fp')
+        ->fields('fp', array('_id', 'title'))
+        ->condition('title', db_like($string) . '%', 'LIKE')
+        ->range(0, 25)
+        ->execute();
+      foreach ($result as $formio) {
+        $matches[$formio->title . "[id:  . $formio->_id]"] = check_plain($formio->title);
+      }
+    }
+    drupal_json_output($matches);
   }
-
-  return $block;
-}
-
-/**
- * Implements hook_io_preset_action_info().
- */
-function formio_io_preset_action_info() {
-  return array(
-    'default' => t('Send to formio'),
-
-  );
 }
 
 /**
