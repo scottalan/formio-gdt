@@ -10,6 +10,7 @@ class FormioPresetUI extends ctools_export_ui {
 
     parent::edit_form($form, $form_state);
 
+    // The embedded preset form.
     $this->formio_form_preset_form($form, $form_state);
     // Add the action form.
     $this->formio_form_action_form($form, $form_state);
@@ -55,9 +56,20 @@ class FormioPresetUI extends ctools_export_ui {
     return $formio;
   }
 
+  /**
+   * @return array
+   */
   private function formio_get_preset_actions() {
-    $options = module_invoke_all('io_preset_action_info');
-    $options = array('_none' => t('Choose an Action...')) + $options;
+    $actions = actions_list();
+    $actions_map = actions_actions_map($actions);
+    $options = array();
+    foreach ($actions_map as $key => $array) {
+      if (!$array['configurable'] && $array['type'] == 'formio') {
+        $options[$key] = $array['label'] . '...';
+      }
+    }
+    // Add a '_none' option to the beginning of the options array.
+    $options = array('_none' => t('Choose Action...')) + $options;
     return $options;
   }
 
@@ -104,12 +116,13 @@ class FormioPresetUI extends ctools_export_ui {
         '#type' => 'fieldset',
         '#title' => t('Preset Options'),
       );
+      $id = drupal_html_id('formio-preset-form');
       $form['formio_preset']['formio_form'] = array(
         '#title' => t('Form.io Form'),
         '#type' => 'select',
         '#options' => $options,
         '#default_value' => isset($form_state['item']->_id) ? $form_state['item']->_id : '',
-        '#prefix' => '<div id="formio-preset-form">',
+        '#prefix' => '<div id="' . $id . '">',
         '#suffix' => '</div>',
         '#ajax' => array(
           'callback' => array($this, 'formio_form_preset_ajax'),
@@ -137,8 +150,8 @@ class FormioPresetUI extends ctools_export_ui {
   public static function formio_form_preset_ajax($form, $form_state) {
     $commands = array();
     // The form to target via the api.
-    $path =  $form_state['item']->api_path;
-    // Render the form.
+    $path =  isset($form_state['item']->api_path) ? $form_state['item']->api_path : $form_state['item']->_id;
+    // Render the form block.
     $block = module_invoke('formio', 'block_view', 'formio_form', $path);
     // Render the html in the Formio fieldset.
     $commands[] = ajax_command_html('#formio-form-render', $block['content']);
