@@ -68,8 +68,7 @@ function formio_preprocess_formio_form(&$vars) {
 function formio_block_info() {
   return array(
     'formio_form' => array(
-      'info' => t('Preset'),
-      'status' => 1,
+      'info' => t('Form.io Form'),
     ),
   );
 }
