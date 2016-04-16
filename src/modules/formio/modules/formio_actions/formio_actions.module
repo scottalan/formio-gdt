@@ -1,0 +1,125 @@
+<?php
+/**
+ * @file
+ * 
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function formio_actions_menu() {
+  $items = array();
+
+  $items['form.io'] = array(
+    'page callback' => 'formio_post_trigger',
+    'page arguments' => array(),
+    'delivery callback' => 'ajax_deliver',
+    'access callback' => TRUE,
+    'theme callback' => 'ajax_base_page_theme',
+    'type' => MENU_CALLBACK,
+    'file path' => 'includes',
+    'file' => 'form.inc',
+  );
+
+  return $items;
+}
+
+/**
+ * Page callback used by the Custom Action URL.
+ *
+ * @todo: a wip, need to map data to entity fields and authenticate with token.
+ */
+function formio_post_trigger() {
+  $data = file_get_contents('php://input');
+  $data = json_decode($data, TRUE);
+
+  // This is used to validate the request. This will be posted back to form.io
+  // and the result will need to be a 200. Add a ?dryrun=1 query to the post.
+  $token = getallheaders()['X-Jwt-Token'];
+
+  $options = array();
+  $args = func_get_args();
+  // Get all enqueued actions.
+  $aids = trigger_get_assigned_actions(__FUNCTION__);
+  // Create the context argument.
+  $context = array(
+    'group' => 'formio',
+    'hook' => 'post_trigger',
+    'args' => $args,
+  );
+  $action_result = actions_do(array_keys($aids), (object) $options, $context);
+
+}
+
+/**
+ * Drupal action callback when posting a form.
+ *
+ * @todo: still a wip
+ *
+ * @param $formio
+ * @param $context
+ */
+function formio_actions_post_action($formio, $context) {
+  drupal_set_message(t('formio_actions_post_action fired!'));
+}
+
+/**
+ * Implements hook_action_info().
+ */
+function formio_actions_action_info() {
+  return array(
+    'formio_actions_post_action' => array(
+      'type' => 'formio',
+      'label' => t('Form.io submission notification'),
+      'configurable' => FALSE,
+      'triggers' => array('formio_post_trigger'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_formio_action_include().
+ *
+ * @return array
+ *   Actions provided by the formio_actions module.
+ */
+function formio_actions_formio_action_include() {
+  return array(
+    'formio_actions' => array(
+      'default.action',
+    ),
+  );
+}
+
+/**
+ * Helper that includes new actions added to modules.
+ *
+ * @return array
+ */
+function formio_actions_get_action_includes() {
+  static $loaded = FALSE;
+  $files = module_invoke_all('formio_action_include');
+  if (!$loaded) {
+    foreach ($files as $module => $actions) {
+      foreach ($actions as $file) {
+        module_load_include('inc', $module, 'actions/' . $file);
+      }
+    }
+    $loaded = TRUE;
+  }
+
+  return $files;
+}
+
+/**
+ * Implements hook_trigger_info().
+ */
+function formio_actions_trigger_info() {
+  return array(
+    'formio' => array(
+      'post_trigger' => array(
+        'label' => t('A form is submitted to Form.io'),
+      ),
+    ),
+  );
+}

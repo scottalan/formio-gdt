@@ -1,0 +1,5 @@
+name = Form.io Actions
+description = Provides adding default and custom actions for form.io forms.
+core = 7.x
+package = form.io
+dependencies[] = trigger
