@@ -78,13 +78,27 @@ function formio_form_content_type_edit_form_submit($form, &$form_state) {
 }
 
 function formio_form_content_type_render($subtype, $conf, $args, $context) {
-  $path = isset($conf['formio_embed']) ? $conf['formio_embed'] : $args['path'];
-  if (isset($path)) {
+  $id = isset($conf['formio_embed']) ? $conf['formio_embed'] : $args['path'];
+  $use_theme = $conf['use_bootswatch'];
+  $theme = isset($conf['bootswatch_theme']) ? $conf['bootswatch_theme'] : 'paper';
+  if (isset($id)) {
     $content = array(
-      '#theme' => 'formio_form_wrapper',
+      '#theme' => 'formio_form',
       '#form' => array(
-        '#path' => $path,
-        '#theme' => 'formio_form',
+        'id' => $id,
+        'theme' => $theme,
+        'use_theme' => $use_theme,
+      ),
+      '#attached' => array(
+        'drupal_add_http_header' => formio_form_content_type_add_headers(),
+        'js' => array(
+          array(
+            'type' => 'setting',
+            'data' => array(
+              'formioRender' => formio_form_content_type_setting_data($id),
+            ),
+          ),
+        ),
       ),
     );
 
