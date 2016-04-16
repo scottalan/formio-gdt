@@ -16,17 +16,18 @@ function formio_form_content_type_edit_form($form, &$form_state) {
   $conf = $form_state['conf'];
 
   $exports = ctools_export_crud_load_all('formio_preset');
-  $export_ui = ctools_get_export_ui('formio');
-
+  foreach ($exports as $export) {
+    $options[$export->_id] = $export->title;
+  }
   $form['formio'] = array(
-    '#title' => 'Embed a Formio',
+    '#title' => 'Form.io Embed',
     '#type' => 'fieldset',
   );
 
   $form['formio']['formio_embed'] = array(
-    '#type' => 'textfield',
-    '#autocomplete_path' => 'formio/autocomplete',
-    '#description' => t('Embed formio form in a page.'),
+    '#type' => 'select',
+    '#title' => t('Form'),
+    '#options' => $options,
     '#default_value' => $conf['formio_embed'],
     '#ajax' => array(
       'callback' => 'formio_display_embed_ajax_callback',
