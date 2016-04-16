@@ -27,67 +27,11 @@ function formio_ctools_plugin_directory($owner, $plugin_type) {
   }
 }
 
-function formio_handler_load($handler) {
-  return formio_form_plugin_get_handler($handler);
-//  $function = 'formio_' . $handler . '_plugin_get_handler';
-//  if (function_exists($function)) {
-//    return $function($plugin);
-//  }
-}
-
-function formio_get_form_plugins() {
-  ctools_include('plugins');
-  return ctools_get_plugins('ctools', 'export_ui', 'formio_defaults');
-}
-
-function formio_get_plugin_with_hook($hook) {
-  $objects = array();
-  $plugins = formio_get_form_plugins();
-//  foreach ($plugins as $name => $plugin) {
-    if (!empty($plugin['hooks'][$hook])) {
-      if ($handler = formio_form_plugin_get_handler($plugin)) {
-        $objects['formio_defaults'] = $handler;
-      }
-    }
-//  }
-
-  return $objects;
-}
-
-function formio_form_plugin_get_handler($plugin) {
-  // Can't load the default, it's abstract.
-  if ($plugin == 'default') {
-    return;
-  }
-
-  // @todo: Implement caching.
-
-  if (is_string($plugin)) {
-    $plugin = formio_get_plugin_by_name($plugin);
-    if (!$plugin) {
-      return FALSE;
-    }
-  }
-}
-
-function formio_get_plugin_by_name($plugin) {
-  ctools_include('plugins');
-  return ctools_get_plugins('formio', 'form', $plugin);
-}
-
 /**
  * Implements hook_menu().
  */
 function formio_menu() {
-
   $items = array();
-
-  $items['action/url/%'] = array(
-    'page callback' => 'formio_get_action_url',
-    'page arguments' => array(0, 2),
-    'access arguments' => array('access content'),
-    'type' => MENU_CALLBACK,
-  );
   $items['system/formio_ajax'] = array(
     'title' => 'Ajax callback',
     'page callback' => 'formio_ajax_form_callback',
@@ -100,8 +44,8 @@ function formio_menu() {
   );
   $items['formio/autocomplete'] = array(
     'page callback' => 'formio_ajax_autocomplete',
-    'type' => MENU_CALLBACK,
     'access arguments' => array('administer formio'),
+    'type' => MENU_CALLBACK,
   );
 
   // Admin menus.
