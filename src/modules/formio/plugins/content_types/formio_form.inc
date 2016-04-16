@@ -29,17 +29,44 @@ function formio_form_content_type_edit_form($form, &$form_state) {
     '#title' => t('Form'),
     '#options' => $options,
     '#default_value' => $conf['formio_embed'],
-    '#ajax' => array(
-      'callback' => 'formio_display_embed_ajax_callback',
-      'wrapper' => 'formio_form_display',
+  );
+
+  $form['formio']['use_bootswatch'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Use bootswatch'),
+    '#default_value' => $conf['use_bootswatch'],
+  );
+
+  $form['formio']['bootswatch_theme'] = array(
+    '#type' => 'select',
+    '#title' => t('Bootswatch Theme'),
+    '#options' => formio_form_content_type_bootswatch(),
+    '#default_value' => $conf['bootswatch_theme'],
+    '#states' => array(
+      'invisible' => array(
+        ':input[name="use_bootswatch"]' => array('checked' => FALSE),
+      ),
     ),
   );
 
   return $form;
 }
 
-function formio_display_embed_ajax_callback() {
+function formio_form_content_type_bootswatch() {
+  $swatches = array();
+  $request = drupal_http_request('https://bootswatch.com/api/' . BOOTSWATCH_API . '.json');
+  if ($request->code != 200) {
+    form_set_error(NULL, t('Not able to access BootSwatch at the moment.'));
+  }
+  $bootswatch = drupal_json_decode($request->data);
 
+  foreach ($bootswatch['themes'] as $theme) {
+    $name = $theme['name'];
+    $key = strtolower($name);
+    $swatches[$key] = $name;
+  }
+
+  return $swatches;
 }
 
 function formio_form_content_type_edit_form_submit($form, &$form_state) {
