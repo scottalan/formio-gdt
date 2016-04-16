@@ -1,10 +1,12 @@
 <?php
 
+define('BOOTSWATCH_API', '3');
+
 $plugin = array(
-  'title' => t('Form IO Form'),
-  'description' => t('Renders a form from Form IO'),
+  'title' => t('Form.io Form'),
+  'description' => t('Renders a form from Form.io'),
   'single' => TRUE,
-  'category' => array(t('Form IO'), -10),
+  'category' => array(t('form.io'), -10),
   'edit form' => 'formio_form_content_type_edit_form',
   'render callback' => 'formio_form_content_type_render',
   'hook theme' => 'formio_form_content_type_theme',
