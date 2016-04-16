@@ -40,26 +40,6 @@ abstract class FormioDefaults {
     return array('x-jwt-token' => $this->getToken());
   }
 
-  protected function loadAssets() {
-    drupal_add_js('https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.5.0/angular.js', array(
-        'type' => 'external',
-        'group' => JS_THEME,
-        'weight' => -1,
-      )
-    );
-    drupal_add_js(drupal_get_path('module', 'formio') . '/js/formio-complete.min.js', array(
-        'group' => JS_THEME,
-        'weight' => 2,
-      )
-    );
-    drupal_add_js(drupal_get_path('module', 'formio') . '/js/formio.js', array(
-      'group' => JS_THEME,
-      'weight' => 10,
-    ));
-    drupal_add_css(drupal_get_path('module', 'formio') . '/css/formio-complete.min.css');
-    drupal_add_css(drupal_get_path('module', 'formio') . '/css/formio.css');
-  }
-
 }
 
 class FormioRequest extends FormioDefaults{
@@ -83,7 +63,6 @@ class FormioRequest extends FormioDefaults{
     $this->header = array('headers' => $this->setHeader());
     $this->operation = $operation;
     $this->params = array();
-    $this->loadAssets();
   }
 
   /**
@@ -165,9 +144,7 @@ class FormioRequest extends FormioDefaults{
   /**
    * @param $data
    */
-  public function decode($data) {
-
-  }
+  public function decode($data) {}
 
   /**
    * @return $this|bool
