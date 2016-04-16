@@ -110,17 +110,37 @@ function formio_form_content_type_render($subtype, $conf, $args, $context) {
   return FALSE;
 }
 
+function formio_form_content_type_get_token() {
+  // If this doesn't work go and get a new one. (May Expire).
+  $token = trim(variable_get('formio_project_api_key', FALSE));
+  if (!isset($token) || empty($token)) {
+    drupal_set_message(t('You need a token file!'), 'error');
+  }
+  return $token;
+}
+
+function formio_form_content_type_add_headers() {
+  return array(
+    array('x-jwt-token', formio_form_content_type_get_token()),
+    array('Accept', 'application/json'),
+    array('Access-Control-Request-Method', 'POST, GET, OPTIONS'),
+  );
+}
+
+function formio_form_content_type_setting_data($id) {
+  return array(
+    'form' => $id,
+    'api' => variable_get('formio_project_url', NULL),
+    'target' => '#formio-form-render',
+  );
+}
+
 function formio_form_content_type_theme(&$theme, $plugin) {
   $path = $plugin['path'] . '/theme';
-  $theme['formio_form_wrapper'] = array(
+  $theme['formio_form'] = array(
     'variables' => array(
       'form' => NULL,
     ),
-    'path' => $path,
-    'template' => 'formio-form-wrapper',
-  );
-  $theme['formio_form'] = array(
-    'render element' => 'element',
     'path' => $path,
     'template' => 'formio-form',
   );
