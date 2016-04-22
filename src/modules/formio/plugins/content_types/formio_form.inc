@@ -10,14 +10,17 @@ $plugin = array(
   'edit form' => 'formio_form_content_type_edit_form',
   'render callback' => 'formio_form_content_type_render',
   'hook theme' => 'formio_form_content_type_theme',
+  'bootswatch api' => 'formio_form_content_type_bootswatch',
 );
 
 function formio_form_content_type_edit_form($form, &$form_state) {
+  $options = array();
+
   $conf = $form_state['conf'];
 
   $exports = ctools_export_crud_load_all('formio_preset');
   foreach ($exports as $export) {
-    $options[$export->_id] = $export->title;
+    $options[$export->id] = $export->title;
   }
   $form['formio'] = array(
     '#title' => 'Form.io Embed',
@@ -70,22 +73,6 @@ function formio_form_content_type_edit_form($form, &$form_state) {
   return $form;
 }
 
-function formio_form_content_type_bootswatch() {
-  $swatches = array();
-  $request = drupal_http_request('https://bootswatch.com/api/' . BOOTSWATCH_API . '.json');
-  if ($request->code == 200) {
-    $bootswatch = drupal_json_decode($request->data);
-
-    foreach ($bootswatch['themes'] as $theme) {
-      $name = $theme['name'];
-      $key = strtolower($name);
-      $swatches[$key] = $name;
-    }
-    return $swatches;
-  }
-  return FALSE;
-}
-
 function formio_form_content_type_edit_form_submit($form, &$form_state) {
   foreach (array_keys($form_state['values']) as $key) {
     if (isset($form_state['values'][$key])) {
@@ -95,9 +82,12 @@ function formio_form_content_type_edit_form_submit($form, &$form_state) {
 }
 
 function formio_form_content_type_render($subtype, $conf, $args, $context) {
-  $id = isset($conf['formio_embed']) ? $conf['formio_embed'] : $args['path'];
-  $use_theme = $conf['use_bootswatch'];
-  $theme = isset($conf['bootswatch_theme']) ? $conf['bootswatch_theme'] : 'paper';
+  // Values could come from a pane or a block.
+  // @todo: Maybe the block could just use conf as well.
+  $id = isset($conf['formio_embed']) ? $conf['formio_embed'] : $args['formio_embed'];
+  $use_theme = isset($conf['use_bootswatch']) ? $conf['use_bootswatch'] : $args['use_bootswatch'];
+  $theme = isset($conf['bootswatch_theme']) ? $conf['bootswatch_theme'] : $args['bootswatch_theme'];
+
   if (isset($id)) {
     $content = array(
       '#theme' => 'formio_form',
@@ -108,13 +98,12 @@ function formio_form_content_type_render($subtype, $conf, $args, $context) {
       ),
       '#attached' => array(
         'drupal_add_http_header' => formio_form_content_type_add_headers(),
+        'library' => array(
+          array('system', 'farbtastic'),
+        ),
+        // Add custom JavaScript.
         'js' => array(
-          array(
-            'type' => 'setting',
-            'data' => array(
-              'formioRender' => formio_form_content_type_setting_data($id),
-            ),
-          ),
+          drupal_get_path('module', 'formio') . '/js/formio.js' => array(NULL, 'module'),
         ),
       ),
     );
@@ -146,6 +135,7 @@ function formio_form_content_type_add_headers() {
 
 function formio_form_content_type_setting_data($id) {
   return array(
+    'reload' => TRUE,
     'form' => $id,
     'api' => variable_get('formio_project_url', NULL),
     'target' => '#formio-form-render',
@@ -161,4 +151,26 @@ function formio_form_content_type_theme(&$theme, $plugin) {
     'path' => $path,
     'template' => 'formio-form',
   );
+}
+
+/**
+ * Get bootswatch theme options from their api.
+ *
+ * @return array|bool
+ *   Array of theme names if the api is up.
+ */
+function formio_form_content_type_bootswatch() {
+  $swatches = array();
+  $request = drupal_http_request('https://bootswatch.com/api/' . BOOTSWATCH_API . '.json');
+  if ($request->code == 200) {
+    $bootswatch = drupal_json_decode($request->data);
+
+    foreach ($bootswatch['themes'] as $theme) {
+      $name = $theme['name'];
+      $key = strtolower($name);
+      $swatches[$key] = $name;
+    }
+    return $swatches;
+  }
+  return FALSE;
 }
