@@ -27,7 +27,9 @@ function formio_schema_1() {
         'minimum_version' => 1,
         'current_version' => 1,
       ),
-      // The callbacks will not be called unless they are implemented.
+      // The callbacks will not be called unless they are implemented. These
+      // are here in case we need to override any of these callbacks in the
+      // future.
       'create callback' => 'formio_export_create',
       'load callback' => 'formio_export_load',
       'save callback' => 'formio_export_save',
@@ -51,7 +53,7 @@ function formio_schema_1() {
         'length' => '255',
         'description' => 'A human readable name of a preset.',
       ),
-      '_id' => array(
+      'id' => array(
         'type' => 'varchar',
         'length' => '32',
         'description' => 'The _id of the Formio form.',
@@ -66,7 +68,7 @@ function formio_schema_1() {
         'not null' => FALSE,
         'size' => 'big',
         'serialize' => TRUE,
-        'description' => 'A serialized array of form.io settings.',
+        'description' => 'A serialized array of settings specific to this preset.',
       ),
     ),
     'primary key' => array('pid'),
