@@ -1,7 +1,7 @@
 <?php
 
 $plugin = array(
-  'handler' => 'FormioForm',
+  'handler' => 'FormioEntity',
   'no ui' => TRUE,
   'hooks' => array(),
 );
