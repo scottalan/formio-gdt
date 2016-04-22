@@ -36,8 +36,12 @@ abstract class FormioDefaults {
   /**
    * @return array
    */
-  protected function setHeader() {
+  protected function setTokenHeader() {
     return array('x-jwt-token' => $this->getToken());
+  }
+
+  protected function setPostHeader() {
+    return array('Content-Type' => 'application/x-www-form-urlencoded');
   }
 
 }
@@ -46,7 +50,9 @@ class FormioRequest extends FormioDefaults{
 
   public $endpoint;
   public $path;
+  public $header;
   public $params;
+  public $body;
   public $operation;
   public $response_type;
   public $status;
@@ -58,22 +64,10 @@ class FormioRequest extends FormioDefaults{
    * Formio constructor.
    * @param string $operation
    */
-  public function __construct($operation = 'GET') {
-    $this->project = trim(variable_get('formio_project_url', NULL));
-    $this->header = array('headers' => $this->setHeader());
-    $this->operation = $operation;
+  public function __construct() {
+    $this->project = trim(variable_get('formio_project_url', NULL), '\ \/');
+    $this->header = array('headers' => $this->setTokenHeader());
     $this->params = array();
-  }
-
-  /**
-   * @return array
-   */
-  public function getRequestOptions() {
-    return array(
-      'headers' => $this->setHeader(),
-      'method' => $this->getOp(),
-      'data' => $this->getParams(),
-    );
   }
 
   /**
@@ -82,6 +76,14 @@ class FormioRequest extends FormioDefaults{
    */
   public function endpoint($url) {
     $this->endpoint = $url;
+    return $this;
+  }
+
+  /**
+   * @return string
+   */
+  public function setOp($op = 'GET') {
+    $this->operation = $op;
     return $this;
   }
 
@@ -99,11 +101,20 @@ class FormioRequest extends FormioDefaults{
     $this->response_type = 'json';
   }
 
+  public function setBody($obj) {
+    $this->body = $obj;
+    return $this;
+  }
+
+  public function getBody() {
+    return $this->body;
+  }
+
   /**
    * @param array $params
    * @return $this
    */
-  public function params(Array $params) {
+  public function setParams(Array $params) {
     foreach ($params as $k => $v) {
       $this->params[] = urlencode($k) . '=' . urlencode($v);
     }
@@ -142,18 +153,39 @@ class FormioRequest extends FormioDefaults{
   }
 
   /**
-   * @param $data
+   * @return array
    */
-  public function decode($data) {}
+  public function getRequestOptions() {
+    return array(
+      'headers' => $this->setTokenHeader(),
+      'method' => $this->getOp(),
+    );
+  }
+
+  public function getData() {
+    $options = $this->getRequestOptions();
+    switch ($options['method']) {
+      case 'GET':
+        $options += array('data' => $this->getParams());
+        break;
+
+      case 'POST':
+        $options['headers'] += array('Content-Type' => 'application/json');
+        $options += array('data' => $this->body);
+        break;
+    }
+    return $options;
+
+  }
 
   /**
    * @return $this|bool
    */
   public function request() {
-    $request = drupal_http_request($this->getPath(), $this->getRequestOptions());
+    $request = drupal_http_request($this->getPath(), $this->getData());
     $this->setStatus($request->code);
 
-    if ($this->getStatus() != 200) {
+    if ($request->code != 200) {
       $error = t('Status message: %status, Code: %code, Error: %error', array(
         '%status' => $request->status,
         '%code' => $request->code,
