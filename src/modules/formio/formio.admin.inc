@@ -6,7 +6,7 @@
 function formio_admin_menu_hook(&$items) {
   $admin_base = array(
     'access arguments' => array('administer formio'),
-    'file' => 'includes/formio.admin.inc',
+    'file' => 'formio.admin.inc',
   );
   $items['admin/config/formio'] = array(
     'title' => 'Form.io',
