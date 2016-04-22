@@ -2,248 +2,43 @@
 
 class FormioPresetUI extends ctools_export_ui {
 
-  public function init($plugin) {
+  function init($plugin) {
+    ctools_include('preset', 'formio');
     parent::init($plugin);
   }
 
-  public function edit_form(&$form, &$form_state) {
-
-    parent::edit_form($form, $form_state);
-
-    // The embedded preset form.
-    $this->formio_form_preset_form($form, $form_state);
-    // Add the action form.
-    $this->formio_form_action_form($form, $form_state);
+  function edit_wizard_next(&$form_state) {
+    $this->store_preset_info($form_state);
+    parent::edit_wizard_next($form_state);
   }
 
-  public function edit_page($js, $input, $item, $step = NULL) {
-
-    return parent::edit_page($js, $input, $item, $step);
-
+  function edit_wizard_finish(&$form_state) {
+    parent::edit_wizard_finish($form_state);
   }
 
-  public function edit_form_submit(&$form, &$form_state) {
-
-    $this->formio_form_preset_form_submit($form, $form_state);
-  }
-
-  public function hook_menu(&$items) {
+  function hook_menu(&$items) {
     // Use this to override or extend menus for the preset.
     parent::hook_menu($items);
   }
 
-  /**
-   * Forms used for preset.
-   *
-   * @param bool $reset
-   * @return array
-   */
-  public function formio_get_forms($reset = FALSE) {
-    static $drupal_static_fast;
-    if (!isset($drupal_static_fast)) {
-      $drupal_static_fast = &drupal_static(__FUNCTION__);
-    }
-    $formio = &$drupal_static_fast;
-
-    if ($reset || !isset($formio)) {
-      $formio = new FormioRequest();
-      $formio
-        ->endpoint('form')
-        ->params(array('type' => 'form'))
-        ->request();
-    }
-
-    return $formio;
+  function get_wizard_info(&$form_state) {
+    $form_info = parent::get_wizard_info($form_state);
+    return $form_info;
   }
 
-  /**
-   * @return array
-   */
-  private function formio_get_preset_actions() {
-    $actions = actions_list();
-    $actions_map = actions_actions_map($actions);
-    $options = array();
-    foreach ($actions_map as $key => $array) {
-      if (!$array['configurable'] && $array['type'] == 'formio') {
-        $options[$key] = $array['label'] . '...';
+  function store_preset_info(&$form_state) {
+    if ($form_state['step'] != 'import') {
+      // Set our custom values.
+      if (isset($form_state['values']['formio_form'])) {
+        $form_state['item']->id = $form_state['values']['formio_form'];
       }
-    }
-    // Add a '_none' option to the beginning of the options array.
-    $options = array('_none' => t('Choose Action...')) + $options;
-    return $options;
-  }
-
-  /**
-   * Preset form used to collect information about actions Formio will perform.
-   *
-   * @return array
-   *   Form containing preset selections.
-   */
-  public function formio_form_preset_form(&$form, &$form_state) {
-
-    $formio = $this->formio_get_forms();
-    $forms = $formio->fetchOptions();
-
-    if (isset($form_state['values']) && !empty($form_state['values']['formio_form'])) {
-      $form_state['item']->_id = $form_state['values']['formio_form'] == '_none' ? NULL : $form_state['values']['formio_form'];
-      $form_state['item']->api_path = $forms[$form_state['item']->_id]['path'];
-      $form_state['item']->formio = $forms[$form_state['item']->_id];
-    }
-
-    if (!empty($forms)) {
-
-      $options = array();
-      $options['_none'] = t('Choose your form...');
-      foreach ($forms as $id => $data) {
-        $options[$id] = $data['title'];
+      if (isset($form_state['values']['formio_action']) && $form_state['values']['formio_action'] != '_none') {
+        $form_state['item']->action = $form_state['values']['formio_action'];
       }
-
-      // Placeholder for rendered formio form.
-      $form['formio_render'] = array(
-        '#type' => 'fieldset',
-        '#title' => t('Form.io'),
-        '#states' => array(
-          'invisible' => array(
-            ':input[name="formio_form"]' => array('value' => '_none'),
-          ),
-        ),
-      );
-      $form['formio_render']['formio_display'] = array(
-        '#markup' => '<div id="formio-form-render"></div>',
-      );
-
-      $form['formio_preset'] = array(
-        '#type' => 'fieldset',
-        '#title' => t('Preset Options'),
-      );
-      $id = drupal_html_id('formio-preset-form');
-      $form['formio_preset']['formio_form'] = array(
-        '#title' => t('Form.io Form'),
-        '#type' => 'select',
-        '#options' => $options,
-        '#default_value' => isset($form_state['item']->_id) ? $form_state['item']->_id : '',
-        '#prefix' => '<div id="' . $id . '">',
-        '#suffix' => '</div>',
-        '#ajax' => array(
-          'callback' => array($this, 'formio_form_preset_ajax'),
-          'wrapper' => 'formio-form-render',
-          'path' => 'system/formio_ajax',
-          'method' => 'replace',
-        ),
-      );
-    }
-  }
-
-  /**
-   * Ajax callback.
-   *
-   * Renders the Form IO form that is selected.
-   *
-   * @param array $form
-   *   Form that triggered the callback.
-   * @param array $form_state
-   *   State of the form.
-   *
-   * @return array
-   *   Ajax commands.
-   */
-  public static function formio_form_preset_ajax($form, $form_state) {
-    $commands = array();
-    // The form to target via the api.
-    $path =  isset($form_state['item']->api_path) ? $form_state['item']->api_path : $form_state['item']->_id;
-    // Render the form block.
-    $block = module_invoke('formio', 'block_view', 'formio_form', $path);
-    // Render the html in the Formio fieldset.
-    $commands[] = ajax_command_html('#formio-form-render', $block['content']);
-
-    // Get the form we want to append.
-    $get_form = drupal_get_form('formio_form_action');
-    // Make sure we don't duplicate the form.
-    $commands[] = ajax_command_remove('#formio-form-action');
-    $commands[] = ajax_command_append('#formio-preset-form', render($get_form));
-
-    // Passed to: 'Drupal.ajax.prototype.commands'.
-    $commands[] = array(
-      'command' => 'formioRender',
-      'form' => $form_state['item']->api_path,
-      'api' => variable_get('formio_project_url', NULL),
-      'target' => '#formio-form-render',
-    );
-
-    // Return commands to the system to be executed.
-    return array('#type' => 'ajax', '#commands' => $commands);
-  }
-
-  /**
-   * ACTION FORM.
-   */
-  public function formio_form_action_form(&$form, &$form_state) {
-    $form['formio_preset']['formio_action'] = array(
-      '#title' => t('Action'),
-      '#type' => 'select',
-      '#options' => $this->formio_get_preset_actions(),
-      '#default_value' => isset($form_state['item']->action) ? $form_state['item']->action : '',
-      '#prefix' => '<div id="formio-action">',
-      '#suffix' => '</div>',
-      '#states' => array(
-        'invisible' => array(
-          ':input[name="formio_form"]' => array('value' => '_none'),
-        ),
-      ),
-      '#ajax' => array(
-        'callback' => array($this, 'formio_form_action_ajax'),
-        'wrapper' => 'formio-preset-form',
-        'path' => 'system/formio_ajax',
-        'method' => 'append',
-      ),
-    );
-  }
-
-  /**
-   * Ajax callback.
-   *
-   * Actions can be anything therefore we need a way to generate the form element
-   * based on the option that was selected. We use the 'key' of the option to
-   * to build the hook we want to invoke.
-   *
-   * @param array $form
-   *   Form that triggered the callback.
-   * @param array $form_state
-   *   State of the form.
-   */
-  public static function formio_form_action_ajax($form, $form_state, $args) {
-    $action = $form_state['values']['formio_action'];
-    if ($action != '_none') {
-      $hook = 'io_preset_action_render__' . $action;
-      foreach (module_implements($hook) as $module) {
-        $function = $module . '_' . $hook;
-        // Expects an array of ajax commands.
-        $commands = $function($form, $form_state);
-        return $commands;
+      if (isset($form_state['values']['settings']) && !empty($form_state['values']['settings'])) {
+        $form_state['item']->settings = $form_state['values']['settings'];
       }
     }
   }
 
-  /**
-   * Override the submit handler for our preset.
-   *
-   * @param $form
-   * @param $form_state
-   */
-  public function formio_form_preset_form_submit($form, &$form_state) {
-    // Transfer data from the form to the $item based upon schema values.
-    $schema = ctools_export_get_schema($this->plugin['schema']);
-
-    // Set all the default items and any others that match the key.
-    foreach (array_keys($schema['fields']) as $key) {
-      if(isset($form_state['values'][$key])) {
-        $form_state['item']->{$key} = $form_state['values'][$key];
-      }
-    }
-
-    // Set our custom values.
-    $form_state['item']->_id = $form_state['values']['formio_form'];
-    $form_state['item']->action = $form_state['values']['formio_action'];
-    $form_state['item']->data = array();
-  }
 }
