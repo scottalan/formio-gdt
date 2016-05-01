@@ -169,8 +169,6 @@
                 // Setup the form.
                 $rootScope.form = {};
 
-                //  http://drupal.local/formio-form/4
-
                 // Load the form.
                 (new Formio(form)).loadForm().then(function(form) {
                   form.action = drupalSettings.action;
