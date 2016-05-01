@@ -1,0 +1,35 @@
+{
+  "name": "formio-viewer",
+  "authors": [
+    "Travis Tidwell <travis@form.io>"
+  ],
+  "description": "A list of viewers for Form.io forms and wizards.",
+  "main": "",
+  "moduleType": [],
+  "license": "MIT",
+  "homepage": "https://form.io/view",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "jquery": "^2.2.0",
+    "seamless": "^0.0.5",
+    "ng-formio": "^1.2.1",
+    "formio-wizard": "^1.0.0",
+    "es6-promise": "^3.0.2",
+    "signature_pad": "^1.5.2"
+  },
+  "overrides": {
+    "bootstrap": {
+      "main": []
+    },
+    "seamless": {
+      "main": "build/seamless.child.min.js"
+    }
+  }
+}
