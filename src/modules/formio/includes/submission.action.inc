@@ -9,7 +9,7 @@
  * @see formio_actions_actions().
  */
 function formio_submission_action(&$items) {
-  $items['formio_submit_action'] = array(
+  $items['formio_action_form_submission'] = array(
     'type' => 'formio',
     'label' => t('Submit form to form.io'),
     'configurable' => FALSE,
@@ -92,7 +92,7 @@ function formio_submission_callback() {
  * @param array $context
  *   Anything needed to perform the action. The context is build in the trigger.
  */
-function formio_submit_action($formio, $context) {
+function formio_action_form_submission($formio, $context) {
 
   // Consider @see drupal_deliver_html_page().
   $result = formio_curl_post($context['token'], $context['uri'], $context['data']);
@@ -103,6 +103,6 @@ function formio_submit_action($formio, $context) {
   }
 }
 
-function formio_submit_action_form($context) {
+function formio_submission_action_form($context) {
   return array();
 }

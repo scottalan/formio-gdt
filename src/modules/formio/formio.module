@@ -1,6 +1,11 @@
 <?php
 
-define('FORMIO_BLOB', 'data');
+/**
+ * @file
+ */
+
+require_once 'includes/formio.inc';
+include_once 'formio.block.inc';
 
 /**
  * Implements hook_ctools_plugin_api().
@@ -9,27 +14,66 @@ define('FORMIO_BLOB', 'data');
  */
 function formio_ctools_plugin_api($owner, $api) {
   if ($owner == 'formio' && $api == 'formio') {
-    return array('version' => 1);
+    return array(
+      'version' => 1,
+      'path' => drupal_get_path('module', 'formio') . '/includes',
+      );
   }
 }
 
 /**
  * Implements hook_ctools_plugin_directory().
  */
-function formio_ctools_plugin_directory($owner, $plugin_type) {
-  if ($owner == 'ctools' && $plugin_type == 'content_types') {
-    return 'plugins/content_types';
+function formio_ctools_plugin_directory($owner, $plugin) {
+  if ($owner == 'formio' && in_array($plugin, array_keys(formio_ctools_plugin_type()))) {
+    return 'plugins/' . $plugin;
   }
-  if ($owner == 'ctools' && $plugin_type =='export_ui') {
-    return 'plugins/export_ui';
+  if ($owner == 'ctools' && $plugin == 'content_types') {
+    return 'plugins/' . $plugin;
   }
+  if ($owner == 'ctools' && $plugin =='export_ui') {
+    return 'plugins/' . $plugin;
+  }
+}
+
+/**
+ * Implements hook_ctools_plugin_type().
+ */
+function formio_ctools_plugin_type() {
+  ctools_include('utility');
+  $items = array();
+  ctools_passthrough('formio', 'plugin-type', $items);
+  return $items;
+}
+
+/**
+ * Implements hook_library().
+ */
+function formio_library() {
+  // Seamless library.
+  $libraries['seamless'] = array(
+    'title' => 'Seamless',
+    'website' => 'https://github.com/travist/seamless.js',
+    'version' => '1.0',
+    'js' => array(
+      'https://npmcdn.com/seamless@latest' => array(
+        'type' => 'external',
+        'group' => JS_THEME,
+        'weight' => -1,
+      ),
+    ),
+  );
+  return $libraries;
 }
 
 /**
  * Implements hook_menu().
  */
 function formio_menu() {
+  ctools_include('utility');
   $items = array();
+  ctools_passthrough('formio', 'menu', $items);
+
   $items['system/formio_ajax'] = array(
     'title' => 'Ajax callback',
     'page callback' => 'formio_ajax_form_callback',
@@ -47,66 +91,59 @@ function formio_menu() {
   );
 
   // Admin menus.
-  ctools_include('formio.admin', 'formio');
+  ctools_include('formio.admin', 'formio', NULL);
   formio_admin_menu_hook($items);
 
+  return $items;
+}
+
+function formio_get_preset_by_pid($pid) {
+  $preset = db_select('formio_preset', 'p')
+    ->fields('p')
+    ->condition('p.pid', $pid)
+    ->execute()
+    ->fetchAssoc();
+
+  return $preset;
+}
+
+/**
+ * Implements hook_action_info().
+ */
+function formio_action_info() {
+  $items = array();
+  ctools_include('utility');
+  ctools_passthrough('formio', 'action-ui', $items);
   return $items;
 }
 
 function formio_preprocess_formio_form(&$vars) {
   $form = &$vars['form'];
   $vars['_id'] = $form['id'];
+  $vars['pid'] = $form['pid'];
+  $vars['name'] = $form['name'];
   $project = parse_url(trim(variable_get('formio_project_url', NULL)));
   list($vars['project_hash']) = explode('.', $project['host']);
   $vars['module_path'] = drupal_get_path('module', 'formio');
   $vars['bootswatch_theme'] = ($form['use_theme']) ? '&theme=' . $form['theme'] : '';
 }
 
-/**
- * Implements hook_block_info().
- */
-function formio_block_info() {
-  return array(
-    'formio_form' => array(
-      'info' => t('Form.io Form'),
-    ),
-  );
-}
 
-/**
- * Implements hook_block_view().
- */
-function formio_block_view($delta = '', $path) {
-  ctools_include('content');
-  $block = array();
-  switch ($delta) {
-    case 'formio_form':
-      $args = array('path' => $path);
-      $data = ctools_content_render('formio_form', 'formio_form', NULL, array(), $args, array());
-      $content = theme('formio_form', $data->content);
-      $block['subject'] = '';
-      $block['content'] = array(
-        '#markup' => $content,
-      );
-      break;
-  }
-
-  return $block;
-}
 
 /**
  * Use our own ajax callback for forms.
  *
  * We use this instead of what 'system/ajax' returns. This is just a modified
- * version of it.
+ * version of it. This allows adding an ajax callback in a class method.
  *
  * @see ajax_form_callback().
  *
  * @return array|mixed
  */
 function formio_ajax_form_callback() {
+  $result = '';
   list($form, $form_state, $form_id, $form_build_id, $commands) = ajax_get_form();
-  ctools_include('content');
+//  ctools_include('content');
   drupal_process_form($form['#form_id'], $form, $form_state);
 
   if (!empty($form_state['triggering_element'])) {
@@ -141,6 +178,33 @@ function formio_ajax_form_callback() {
   return $result;
 }
 
+/**
+ * Implements hook_trigger_info().
+ */
+function formio_trigger_info() {
+  return array(
+    'formio' => array(
+      'formio_form_submission' => array(
+        'label' => t('Form submission'),
+      ),
+    ),
+  );
+}
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Custom menu callback for an ajax auto-completion field.
+ * @param string $string
+ */
 function formio_ajax_autocomplete($string = '') {
   $args = func_get_args();
   if (!empty($args)) {
@@ -149,12 +213,12 @@ function formio_ajax_autocomplete($string = '') {
   else {
     if ($string) {
       $result = db_select('formio_preset', 'fp')
-        ->fields('fp', array('_id', 'title'))
+        ->fields('fp', array('id', 'title'))
         ->condition('title', db_like($string) . '%', 'LIKE')
         ->range(0, 25)
         ->execute();
       foreach ($result as $formio) {
-        $matches[$formio->title . "[id:  . $formio->_id]"] = check_plain($formio->title);
+        $matches[$formio->title . "[id:  . $formio->id]"] = check_plain($formio->title);
       }
     }
     drupal_json_output($matches);
@@ -188,5 +252,36 @@ function formio_form_render($form, &$form_state, $args) {
       $function($form, $form_state, $args);
     }
   }
+  return $form;
+}
+
+/**
+ * Form constructor for Calculations demo.
+ */
+function formio_calculation($form, $form_state) {
+  // Load all plugins type "operation".
+  ctools_include('plugins');
+  $operations = ctools_get_plugins('example', 'operation');
+  $operation_options = array();
+
+  foreach ($operations as $id => $operation) {
+    $operation_options[$id] = $operation['label'];
+  }
+
+  if (empty($operation_options)) {
+    $form['message'] = array(
+      '#markup' => t('Sorry no operation plugins available in the system.'),
+    );
+    return $form;
+  }
+
+  $form['operations'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('Please choose Operations'),
+    '#options' => $operation_options,
+  );
+
+  // Form elements...
+
   return $form;
 }

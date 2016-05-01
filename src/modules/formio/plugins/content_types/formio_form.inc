@@ -4,7 +4,7 @@ define('BOOTSWATCH_API', '3');
 
 $plugin = array(
   'title' => t('Form.io Form'),
-  'description' => t('Renders a form from Form.io'),
+  'description' => t('Renders an embedded form from Form.io'),
   'single' => TRUE,
   'category' => array(t('form.io'), -10),
   'edit form' => 'formio_form_content_type_edit_form',
@@ -18,9 +18,10 @@ function formio_form_content_type_edit_form($form, &$form_state) {
 
   $conf = $form_state['conf'];
 
+  ctools_include('export');
   $exports = ctools_export_crud_load_all('formio_preset');
   foreach ($exports as $export) {
-    $options[$export->id] = $export->title;
+    $options[$export->pid] = $export->title;
   }
   $form['formio'] = array(
     '#title' => 'Form.io Embed',
@@ -49,6 +50,12 @@ function formio_form_content_type_edit_form($form, &$form_state) {
       ),
     ),
   );
+
+  $form['export_pid'] = array(
+    '#type' => 'hidden',
+    '#value' => 'formio_embed',
+  );
+
   $swatches = formio_form_content_type_bootswatch();
   if ($swatches == FALSE) {
     $form['formio']['bootswatch_theme']['#type'] = 'textfield';
@@ -57,18 +64,6 @@ function formio_form_content_type_edit_form($form, &$form_state) {
     $form['formio']['bootswatch_theme']['#type'] = 'select';
     $form['formio']['bootswatch_theme']['#options'] = $swatches;
   }
-
-  // @todo: autocomplete.
-//  $form['formio']['formio_embed'] = array(
-//    '#type' => 'textfield',
-//    '#autocomplete_path' => 'formio/autocomplete',
-//    '#description' => t('Embed formio form in a page.'),
-//    '#default_value' => $conf['formio_embed'],
-//    '#ajax' => array(
-//      'callback' => 'formio_display_embed_ajax_callback',
-//      'wrapper' => 'formio_form_display',
-//    ),
-//  );
 
   return $form;
 }
@@ -84,22 +79,27 @@ function formio_form_content_type_edit_form_submit($form, &$form_state) {
 function formio_form_content_type_render($subtype, $conf, $args, $context) {
   // Values could come from a pane or a block.
   // @todo: Maybe the block could just use conf as well.
-  $id = isset($conf['formio_embed']) ? $conf['formio_embed'] : $args['formio_embed'];
+  $pid = isset($conf[$conf['export_pid']]) ? $conf[$conf['export_pid']] : $args['formio_embed'];
   $use_theme = isset($conf['use_bootswatch']) ? $conf['use_bootswatch'] : $args['use_bootswatch'];
   $theme = isset($conf['bootswatch_theme']) ? $conf['bootswatch_theme'] : $args['bootswatch_theme'];
 
-  if (isset($id)) {
+  $preset = formio_get_preset_by_pid($pid);
+
+  if (isset($pid)) {
     $content = array(
       '#theme' => 'formio_form',
       '#form' => array(
-        'id' => $id,
+        'pid' => $preset['pid'],
+        'id' => $preset['id'],
+        'name' => $preset['name'],
+        'action' => $preset['action'],
         'theme' => $theme,
         'use_theme' => $use_theme,
       ),
       '#attached' => array(
         'drupal_add_http_header' => formio_form_content_type_add_headers(),
         'library' => array(
-          array('system', 'farbtastic'),
+          array('formio', 'seamless'),
         ),
         // Add custom JavaScript.
         'js' => array(
@@ -116,6 +116,26 @@ function formio_form_content_type_render($subtype, $conf, $args, $context) {
   return FALSE;
 }
 
+/**
+ * Attaching headers to the render array.
+ *
+ * @return array
+ *   An array of headers.
+ */
+function formio_form_content_type_add_headers() {
+  return array(
+    array('x-jwt-token', formio_form_content_type_get_token()),
+    array('Accept', 'application/json'),
+    array('Access-Control-Request-Method', 'POST, GET, OPTIONS'),
+  );
+}
+
+/**
+ * Gets the token needed for the header used for authorization.
+ *
+ * @return string
+ *   The x-jwt-token we need to add to the header for authentication.
+ */
 function formio_form_content_type_get_token() {
   // If this doesn't work go and get a new one. (May Expire).
   $token = trim(variable_get('formio_project_api_key', FALSE));
@@ -123,14 +143,6 @@ function formio_form_content_type_get_token() {
     drupal_set_message(t('You need a token file!'), 'error');
   }
   return $token;
-}
-
-function formio_form_content_type_add_headers() {
-  return array(
-    array('x-jwt-token', formio_form_content_type_get_token()),
-    array('Accept', 'application/json'),
-    array('Access-Control-Request-Method', 'POST, GET, OPTIONS'),
-  );
 }
 
 function formio_form_content_type_setting_data($id) {
@@ -142,6 +154,9 @@ function formio_form_content_type_setting_data($id) {
   );
 }
 
+/**
+ * Implements ctools content types plugin hook theme.
+ */
 function formio_form_content_type_theme(&$theme, $plugin) {
   $path = $plugin['path'] . '/theme';
   $theme['formio_form'] = array(
