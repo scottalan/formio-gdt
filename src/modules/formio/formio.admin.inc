@@ -1,8 +1,15 @@
 <?php
 /**
  * @file
+ * Administrative forms.
  */
 
+/**
+ * Builds the admin menu.
+ *
+ * @param array $items
+ *   Menu items being defined.
+ */
 function formio_admin_menu_hook(&$items) {
   $admin_base = array(
     'access arguments' => array('administer formio'),
@@ -24,7 +31,12 @@ function formio_admin_menu_hook(&$items) {
 }
 
 /**
- * Settings form used to collect configuration used to communicate with Formio.
+ * Settings form used to collect information needed communicate with Formio.
+ *
+ * @param array $form
+ *   The form array.
+ * @param array $form_state
+ *   The current state of the form.
  *
  * @return array
  *   System settings form.
@@ -43,8 +55,7 @@ function formio_admin_settings($form, &$form_state) {
   $form['formio_settings']['formio_project_api_key'] = array(
     '#title' => t('Project API Key'),
     '#type' => 'textfield',
-    // @todo: Remove this when we use an actual api key, this is for token.
-    '#maxlength' => 10000,
+    '#maxlength' => 100,
     '#description' => t('Enter your Form.io project API key'),
     '#default_value' => variable_get('formio_project_api_key', ''),
   );
