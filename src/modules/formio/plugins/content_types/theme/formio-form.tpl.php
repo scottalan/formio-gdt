@@ -1,10 +1,9 @@
-<?php
-global $base_url;
-?>
 <script type="text/javascript">
-localStorage.setItem('formio-form-<?php print $name; ?>', {
-  action: '<?php print $base_url ?>/formio-default/<?php print $name; ?>'
-});
+<?php if ($name != 'new-preset'): ?>
+  localStorage.setItem('formio-form-<?php print $name; ?>', JSON.stringify({
+    action: '<?php print $callback; ?>'
+  }));
+<?php endif; ?>
 (function b($, u) {
   if (typeof $.fn.seamless === u) {
     return setTimeout(b, 100);
@@ -16,5 +15,5 @@ localStorage.setItem('formio-form-<?php print $name; ?>', {
 })(jQuery);
 </script>
 <iframe id="formio-form-<?php print $name; ?>" style="width:100%;border:none;" height="250px"
-  src="/<?php print $module_path; ?>/view/dist/view/index.html#/<?php print $project_hash; ?>/form/<?php print $_id; ?>?iframe=1<?php print $bootswatch_theme; ?>&header=0&name=<?php print $name; ?>">
+  src="/<?php print $module_path; ?>/view/src/view/index.html#/<?php print $project_hash; ?>/form/<?php print $_id; ?>?iframe=1<?php print $bootswatch_theme; ?>&header=0&name=<?php print $name; ?>">
 </iframe>

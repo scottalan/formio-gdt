@@ -55,7 +55,7 @@ function formio_admin_settings($form, &$form_state) {
   $form['formio_settings']['formio_project_api_key'] = array(
     '#title' => t('Project API Key'),
     '#type' => 'textfield',
-    '#maxlength' => 100,
+    '#maxlength' => 10000,
     '#description' => t('Enter your Form.io project API key'),
     '#default_value' => variable_get('formio_project_api_key', ''),
   );

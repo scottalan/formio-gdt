@@ -3,18 +3,20 @@
 interface FormioActionsInterface {
 
   function init($plugin);
-  function action($plugin);
+  function action($plugin, $preset_name, $export);
 }
 class FormioActions implements FormioActionsInterface {
+
+  // The plugin.
   var $plugin;
+  // The name of the plugin
   var $name;
+  // A human readable name of the plugin.
   var $title;
-  var $action;
 
   function init($plugin) {
     $this->plugin = $plugin;
     $this->name = $plugin['name'];
-    $this->action = $plugin['action'];
     $this->title = isset($plugin['title']) ? $plugin['title'] : ucwords(str_replace('_', ' ', $plugin['name']));
   }
 
@@ -37,5 +39,5 @@ class FormioActions implements FormioActionsInterface {
   /**
    * Used to implement the action.
    */
-  function action($plugin) {}
+  function action($plugin, $preset_name, $export) {}
 }

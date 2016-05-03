@@ -26,18 +26,10 @@ function formio_action_ui_process(&$plugin, $info) {
   }
 }
 
-//function formio_action_ui_base_path($plugin) {
-//  return $plugin['menu base'] . '/' . $plugin['callback path'];
-//}
-
 /**
  * Fetch metadata on a specific action plugin.
  *
- * @param string $module
- *   Name of the module.
- * @param string $type
- *   Type of plugin, such as 'action_ui'.
- * @param string $file
+ * @param string $plugin_name
  *   Name of action plugin file.
  *
  * @return
@@ -63,30 +55,44 @@ function formio_get_action_uis() {
 /**
  * @todo: Possible switcher for action forms...
  *
- * @param string $plugin_name
- * @param string $op
+ * @param array $form
+ * @param array $form_state
+ * @param string $action
+ * @param string $method
  *
  * @return mixed|null|string
  */
-function formio_action_ui_switcher($plugin_name, $op) {
-  $args = func_get_args();
-  $plugin = formio_get_action_ui($plugin_name);
-  $handler = formio_action_ui_get_handler($plugin);
+function formio_action_ui_get_form(&$form, &$form_state, $action, $method) {
+  // Find the action ui from the action.
+  list(, $name) = explode(':', $action);
+  // This will give us the action plugin.
+  ctools_include('action', 'formio');
+  $action_plugin = formio_get_action($name);
+  list(, $action_ui) = explode(':', $action_plugin['action ui']);
+  // Use the action plugin to get the action ui to use for our wizard.
+  $action_ui_plugin = formio_get_action_ui($action_ui);
 
+  $handler = formio_action_ui_get_handler($action_ui_plugin);
   if ($handler) {
-    $method = $op . '_action_form';
     if (method_exists($handler, $method)) {
-      // replace the first two arguments:
-      $args[0] = 'what';
-      $args[1] = $_POST;
-      return call_user_func_array(array($handler, $method), $args);
+      call_user_func_array(array($handler, $method), array(&$form, &$form_state));
     }
   }
-  elseif (!empty($plugin['action info'])) {
-    return $plugin['action info'];
-  }
-  else {
-    return t('Configuration error. No steps were found.');
+}
+
+function formio_action_ui_wizard_forms(&$form_state, $action) {
+  // Find the action ui from the action.
+  list(, $name) = explode(':', $action);
+  // This will give us the action plugin.
+  ctools_include('action', 'formio');
+  $action_plugin = formio_get_action($name);
+  list(, $action_ui) = explode(':', $action_plugin['action ui']);
+  // Use the action plugin to get the action ui to use for our wizard.
+  $action_ui_plugin = formio_get_action_ui($action_ui);
+
+  if (!empty($action_ui_plugin['action forms'])) {
+    $form_state['item']->settings['action_ui'] = $action_ui_plugin['action forms'];
+    return $action_ui_plugin['action forms'];
   }
 }
 

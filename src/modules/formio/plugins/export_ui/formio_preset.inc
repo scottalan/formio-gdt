@@ -6,7 +6,7 @@
 
 $plugin = array(
   // As defined in hook_schema().
-  'schema' => 'formio_preset',
+  'schema' => FORMIO_PRESET,
   // Define a permission users must have to access these pages.
   'access' => 'administer formio',
 
@@ -41,7 +41,7 @@ $plugin = array(
 
   'use wizard' => TRUE,
   'form info' => array(
-    'id' => 'formio_preset',
+    'id' => FORMIO_PRESET,
     'add order' => array(
       'admin' => t('Give your preset a name'),
       'choose' => t('Choose a form'),
@@ -56,8 +56,21 @@ $plugin = array(
     'forms' => array(),
   ),
 
+  'default steps' => formio_preset_defaults(),
+
   'allowed operations' => array(),
 );
+
+/**
+ * Gets the default forms used for this preset.
+ *
+ * @return array
+ *   The default forms for this preset.
+ */
+function formio_preset_defaults() {
+  include_once DRUPAL_ROOT . '/includes/common.inc';
+  return drupal_map_assoc(array('choose', 'action', 'settings'));
+}
 
 /**
  * Renders the form when creating a preset.
@@ -95,7 +108,12 @@ function formio_preset_display_form($form, &$form_state) {
 function formio_preset_display_ajax($form, $form_state) {
   $commands = array();
   // The form to target via the api.
-  $args = array('formio_embed' => isset($form_state['item']->id) ? $form_state['item']->id : $form_state['values']['formio_form']);
+  $args = array(
+    'form' => isset($form_state['item']->id) ?
+      $form_state['item']->id :
+      $form_state['values']['formio_form'],
+    'preset' => TRUE,
+  );
   // Render the form block.
   $block = module_invoke('formio', 'block_view', 'formio_form', $args);
 
@@ -136,12 +154,12 @@ function formio_preset_choose_form(&$form, &$form_state) {
     $form += formio_preset_display_form($form, $form_state);
 
     $html = '<button type="button" id="reload-preset" class="btn btn-info btn-sm">reload</button>';
-    $form['formio_preset'] = array(
+    $form[FORMIO_PRESET] = array(
       '#type' => 'fieldset',
       '#title' => t('Preset Options !button', array('!button' => $html)),
     );
     $id = drupal_html_id('formio-preset-form');
-    $form['formio_preset']['formio_form'] = array(
+    $form[FORMIO_PRESET]['formio_form'] = array(
       '#title' => t('Form.io Form'),
       '#type' => 'select',
       '#options' => $options,
@@ -184,30 +202,20 @@ function formio_preset_choose_form_submit(&$form, &$form_state) {
  */
 function formio_preset_action_form(&$form, &$form_state) {
 
-  if (isset($form_state['item']->action)) {
-    $key = drupal_hash_base64($form_state['item']->action);
-    $default_value = $key;
-  }
-
+  // Get all plugin actions.
   $actions = formio_preset_get_actions();
 
-  $form['formio_preset']['formio_action'] = array(
+  $default = '';
+  if (isset($form_state['item']->action)) {
+    list(, $default) = explode(':', $form_state['item']->action);
+  }
+
+  $form[FORMIO_PRESET]['formio_action'] = array(
     '#title' => t('Action'),
     '#type' => 'select',
     '#options' => $actions,
-    '#default_value' => isset($default_value) ? $default_value : '',
+    '#default_value' => $default,
   );
-}
-
-/**
- * Validation for the action step.
- * @param $form
- * @param $form_state
- */
-function formio_preset_action_form_validate(&$form, &$form_state) {
-  if ($form_state['values']['formio_action'] == '_none') {
-    form_set_error('formio_action', t('You must choose an Action'));
-  }
 }
 
 /**
@@ -240,12 +248,47 @@ function formio_preset_settings_form(&$form, &$form_state) {
     $text = t("This Action requires a few more settings. Keep going you're almost done!");
   }
   else {
-    $text = t("If you see the Finish button, Congratulations...you're finished with your preset. Otherwise, keep on going...you're almost done!");
+    $text = t("This Action might require a few more settings, if not click Finish and you're done!");
   }
   $form['pre_settings'] = array(
-    '#markup' => '<div class="pre-settings">' . $text . '</div>'
+    '#prefix' => '<div class="preset-settings">',
+    '#markup' => $text,
+    '#suffix' => '</div>',
   );
 }
+
+/**
+ * @return array
+ */
+function formio_preset_get_actions() {
+  $actions = array();
+  ctools_include('action', 'formio');
+  $plugins = formio_get_actions();
+  foreach ($plugins as $id => $plugin) {
+    if ($plugin['has actions']) {
+      $handler = formio_actions_get_handler($plugin);
+      if ($handler) {
+        $method = method_exists($handler, 'action');
+        if ($method) {
+          $actions[$plugin['name']] = $plugin['title'];
+        }
+      }
+      else {
+        $function = ctools_plugin_get_function($plugin, 'action');
+        if (function_exists($function)) {
+          $actions[$plugin['name']] = $plugin['title'];
+        }
+      }
+    }
+  }
+  return $actions;
+}
+
+
+
+
+
+
 
 /**
  * Forms used for preset.
@@ -265,29 +308,4 @@ function formio_get_forms($reset = FALSE) {
   }
 
   return $formio;
-}
-
-/**
- * @return array
- */
-function formio_preset_get_actions() {
-  $actions = array();
-  ctools_include('action', 'formio');
-  $plugins = formio_get_actions();
-  foreach ($plugins as $id => $plugin) {
-    $handler = formio_actions_get_handler($plugin);
-    if ($handler) {
-      $method = method_exists($handler, 'action');
-      if ($method) {
-        $actions[$plugin['name']] = $plugin['title'];
-      }
-    }
-    else {
-      $function = ctools_plugin_get_function($plugin, 'action');
-      if (function_exists($function)) {
-        $actions[$plugin['name']] = $plugin['title'];
-      }
-    }
-  }
-  return $actions;
 }

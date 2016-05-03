@@ -77,20 +77,20 @@ class Formio implements FormioFormControllerInterface{
   /**
    * @return string
    */
-  private function getToken() {
+  private function apiKey() {
     // If this doesn't work go and get a new one. (May Expire).
-    $token = trim(variable_get('formio_project_api_key', FALSE));
-    if (!isset($token) || empty($token)) {
-      drupal_set_message(t('You need a token file!'), 'error');
+    $apikey = trim(variable_get('formio_project_api_key', FALSE));
+    if (!isset($apikey) || empty($apikey)) {
+      drupal_set_message(t('Looks like you need an API Key. Visit !formio and create one.', array('!formio', l('Form.io', 'https://form.io'))), 'warning');
     }
-    return $token;
+    return $apikey;
   }
 
   /**
    * @return array
    */
-  protected function setTokenHeader() {
-    return array('x-jwt-token' => $this->getToken());
+  protected function setApiKey() {
+    return array('x-jwt-token' => $this->apiKey());
   }
 
   protected function setPostHeader() {
@@ -101,13 +101,17 @@ class Formio implements FormioFormControllerInterface{
    * Formio constructor.
    */
   public function __construct() {
+    // Get the project url from settings and strip whitespace and the
+    // end forward slash if it exists.
     $this->project = trim(variable_get('formio_project_url', NULL), '\ \/');
-    $this->header = array('headers' => $this->setTokenHeader());
+    $this->header = array('headers' => $this->setApiKey());
     $this->params = array();
   }
 
   /**
-   * @param $url
+   * The api portion of the url.
+   *
+   * @param string $url
    * @return $this
    */
   public function endpoint($url) {
@@ -116,6 +120,11 @@ class Formio implements FormioFormControllerInterface{
   }
 
   /**
+   * The type of interaction we want with the form.
+   *
+   * @param string $method
+   *   This would be either: get, post, put, delete.
+   *
    * @return string
    */
   public function method($method) {
@@ -186,7 +195,7 @@ class Formio implements FormioFormControllerInterface{
    */
   public function getRequestOptions() {
     return array(
-      'headers' => $this->setTokenHeader(),
+      'headers' => $this->setApiKey(),
       'method' => $this->method,
     );
   }
@@ -277,6 +286,7 @@ class Formio implements FormioFormControllerInterface{
           'key' => $component['key'],
           'type' => $component['type'],
           'label' => $component['label'],
+          'validate' => $component['validate'],
         );
       }
     }

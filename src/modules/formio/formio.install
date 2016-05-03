@@ -11,7 +11,7 @@ function formio_schema() {
  * Schema version 1.
  */
 function formio_schema_1() {
-  $schema['formio_preset'] = array(
+  $schema[FORMIO_PRESET] = array(
     'description' => t('Table storing preset definitions.'),
     'export' => array(
       'key' => 'name',
@@ -19,7 +19,7 @@ function formio_schema_1() {
       'admin_title' => 'title',
       'primary key' => 'pid',
       'identifier' => 'formio',
-      'default hook' => 'formio_preset',
+      'default hook' => FORMIO_PRESET,
       'export type string' => 'state',
       'api' => array(
         'owner' => 'formio',

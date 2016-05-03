@@ -2,6 +2,8 @@
 
 class FormioPresetUI extends ctools_export_ui {
 
+  var $default_steps;
+
   /**
    * Implements init().
    *
@@ -9,33 +11,60 @@ class FormioPresetUI extends ctools_export_ui {
    */
   function init($plugin) {
     $this->name = $plugin['name'];
+    $this->default_steps = $plugin['default steps'];
     parent::init($plugin);
   }
 
   /**
+   * The key, or in this case the 'name'.
+   *
+   * @return string
+   *   The key defined by the export schema.
+   */
+  function key() {
+    return $this->plugin['export']['key'];
+  }
+
+  /**
    * Implements get_wizard_info().
+   *
+   * This is where we need to inject 'action_ui' forms if we need to.
    */
   function get_wizard_info(&$form_state) {
-    ctools_include('action-ui', 'formio');
-    $action = $form_state['item']->action;
-    if (!empty($action)) {
-      list($module, $plugin_name, $type) = explode(':', $action);
+    // Include our preset helpers in the form state.
+    ctools_form_include($form_state, 'preset-ui', 'formio');
+    ctools_form_include($form_state, 'action-ui', 'formio');
 
-      $action_form = formio_action_ui_switcher($plugin_name, 'edit');
+    $step = $form_state['step'];
+    if (isset($step) && $step == 'settings') {
+      // If we are on the 'settings' step then we grab the action ui
+      // form we need to inject into the wizard.
+      $action = $form_state['item']->action;
+      if (!empty($action)) {
+        ctools_include('action-ui', 'formio');
+        $forms = formio_action_ui_wizard_forms($form_state, $action);
 
-      if (!$action_form) {
-        ctools_include($type, $module);
-        $plugin = formio_get_action_ui($plugin_name);
-        $action_form = $plugin['action form'];
+        // This is for parent::get_wizard_info().
+        $this->plugin['form info']['order'] += $forms;
+        $this->plugin['form info']['add order'] += $forms;
+
+        // This is for us.
+        $form_state['object']->plugin['form info']['order'] += $forms;
+        $form_state['object']->plugin['form info']['add order'] += $forms;
+        $form_state['plugin']['form info']['order'] += $forms;
+        $form_state['plugin']['form info']['add order'] += $forms;
       }
+    }
+    else {
+      if (!in_array($step, $this->default_steps)) {
+        $action = $form_state['item']->action;
+        if (!empty($action)) {
+          ctools_include('action-ui', 'formio');
+          $forms = formio_action_ui_wizard_forms($form_state, $action);
 
-      if (isset($action_form)) {
-        // Go ahead and store the steps in the preset.
-        $form_state['item']->settings['steps'] = $action_form;
-
-        foreach ($action_form as $key => $info) {
-          $this->plugin['form info']['add order'][$key] = $info['title'];
-          $this->plugin['form info']['order'][$key] = $info['title'];
+          // This is for parent::get_wizard_info().
+          $this->plugin['form info']['order'] += $forms;
+          $this->plugin['form info']['add order'] += $forms;
         }
       }
     }
@@ -61,31 +90,27 @@ class FormioPresetUI extends ctools_export_ui {
    * e.g., $form_state['object']->something =  $form_state['values']['something'];
    */
   function edit_form(&$form, &$form_state) {
-    $export_key = $this->plugin['export']['key'];
+    // @todo: sassify this!
+    $form['#attached']['css'][drupal_get_path('module', 'formio') . '/css/formio.css'] = array();
+    // The step we are currently on in the wizard.
     $step = $form_state['step'];
+    // We are letting the export-ui handle this field.
     if ($step == 'admin') {
       parent::edit_form($form, $form_state);
     }
-    else {
-      $function = $form_state['plugin'][$export_key] . '_' . str_replace(':', '_', $step) . '_form';
+    elseif (in_array($step, $this->default_steps)) {
+      // These are forms specific to this plugin so we know exactly how to call
+      // the form functions.
+      $function = FORMIO_PRESET . '_' . $step . '_form';
       if (function_exists($function)) {
         $function($form, $form_state);
       }
-      elseif (!empty($form_state['item']->action)) {
-        $action = $form_state['item']->action;
-        list($module, $plugin_name, $type) = explode(':', $action);
-        ctools_include($type, $module);
-        $plugin = formio_get_action_ui($plugin_name);
-        $action_form = $plugin['action form'];
-
-        foreach ($action_form as $key => $info) {
-          if ($key == $step) {
-            if (function_exists($info['form'])) {
-              $info['form']($form, $form_state);
-            }
-          }
-        }
-      }
+    }
+    else {
+      // We can assume this is an action.
+      ctools_include('action-ui', 'formio');
+      $method = $step . '_form';
+      formio_action_ui_get_form($form, $form_state, $form_state['item']->action, $method);
     }
   }
 
@@ -93,33 +118,26 @@ class FormioPresetUI extends ctools_export_ui {
    * Implements edit_form_submit().
    */
   function edit_form_submit(&$form, &$form_state) {
-    $export_key = $this->plugin['export']['key'];
+    $export_key = $this->key();
     $step = $form_state['step'];
 
     if ($step == 'admin' && !empty($form_state['values'][$export_key])) {
       $form_state['item']->{$export_key} = $form_state['values'][$export_key];
+      $form_state['item']->title = $form_state['values']['title'];
     }
-    else {
-      $function = $form_state['plugin'][$export_key] . '_' . str_replace(':', '_', $step) . '_form_submit';
+    elseif (in_array($step, $this->default_steps)) {
+      // These are forms specific to this plugin so we know exactly how to call
+      // the form functions.
+      $function = FORMIO_PRESET . '_' . $step . '_form_submit';
       if (function_exists($function)) {
         $function($form, $form_state);
       }
-      elseif (!empty($form_state['item']->action)) {
-        $action = $form_state['item']->action;
-        list($module, $plugin_name, $file) = explode(':', $action);
-        ctools_include($file, $module);
-        $plugin = formio_get_action_ui($plugin_name);
-        $action_form = $plugin['action form'];
-
-        foreach ($action_form as $key => $info) {
-          if ($key == $step) {
-            $function = $info['form'] . '_submit';
-            if (function_exists($function)) {
-              $function($form, $form_state);
-            }
-          }
-        }
-      }
+    }
+    else {
+      // We can assume this is an action.
+      ctools_include('action-ui', 'formio');
+      $method = $step . '_form_submit';
+      formio_action_ui_get_form($form, $form_state, $form_state['item']->action, $method);
     }
   }
 }
