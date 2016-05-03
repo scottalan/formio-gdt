@@ -7,6 +7,9 @@
 require_once 'includes/formio.inc';
 include_once 'formio.block.inc';
 
+define('FORMIO_PRESET','formio_preset');
+define('FORMIO_BLOCK','formio_block');
+
 /**
  * Implements hook_ctools_plugin_api().
  *
@@ -40,6 +43,7 @@ function formio_ctools_plugin_directory($owner, $plugin) {
  * Implements hook_ctools_plugin_type().
  */
 function formio_ctools_plugin_type() {
+  // Loads custom plugin types.
   ctools_include('utility');
   $items = array();
   ctools_passthrough('formio', 'plugin-type', $items);
@@ -70,6 +74,7 @@ function formio_library() {
  * Implements hook_menu().
  */
 function formio_menu() {
+  // Allows plugins to define menu items via hook_menu().
   ctools_include('utility');
   $items = array();
   ctools_passthrough('formio', 'menu', $items);
@@ -97,8 +102,17 @@ function formio_menu() {
   return $items;
 }
 
+/**
+ * Helper to get a preset by pid.
+ *
+ * @param int $pid
+ *   The unique pid of a preset.
+ *
+ * @return array
+ *   The preset.
+ */
 function formio_get_preset_by_pid($pid) {
-  $preset = db_select('formio_preset', 'p')
+  $preset = db_select(FORMIO_PRESET, 'p')
     ->fields('p')
     ->condition('p.pid', $pid)
     ->execute()
@@ -107,28 +121,129 @@ function formio_get_preset_by_pid($pid) {
   return $preset;
 }
 
-/**
- * Implements hook_action_info().
- */
-function formio_action_info() {
-  $items = array();
-  ctools_include('utility');
-  ctools_passthrough('formio', 'action-ui', $items);
-  return $items;
-}
-
 function formio_preprocess_formio_form(&$vars) {
+  global $base_url;
   $form = &$vars['form'];
+
+  // The form.io form _id and the name of the preset.
   $vars['_id'] = $form['id'];
-  $vars['pid'] = $form['pid'];
-  $vars['name'] = $form['name'];
+  $vars['name'] = isset($form['name']) ? $form['name'] : 'new-preset';
+
+  if ($vars['name'] == 'new-preset') {
+    $callback = '';
+  }
+  else {
+    $callback = $base_url . '/formio/' . $vars['name'];
+  }
+
+  // Set the callback.
+  $vars['callback'] = $callback;
+
+  // Get the project hash from the uri.
   $project = parse_url(trim(variable_get('formio_project_url', NULL)));
   list($vars['project_hash']) = explode('.', $project['host']);
+
+  // Path to the formio module.
   $vars['module_path'] = drupal_get_path('module', 'formio');
-  $vars['bootswatch_theme'] = ($form['use_theme']) ? '&theme=' . $form['theme'] : '';
+
+  // The Bootswatch theme, if there is one.
+  $vars['bootswatch_theme'] = isset($form['formio_use_bootswatch']) ? '&theme=' . $form['formio_bootswatch_theme'] : '';
 }
 
+/**
+ * This is the default configuration form used to configure the display of the
+ * form whether it be in a pane or a block.
+ *
+ * @param array $form
+ */
+function formio_display_config_form(&$form, $conf) {
+  $options = array();
 
+  $delta = is_array($conf) ? FALSE : (is_string($conf) ? TRUE : '');
+
+  // Get all presets.
+  ctools_include('export');
+  $exports = ctools_export_crud_load_all(FORMIO_PRESET, TRUE);
+
+  // Build the options for the presets.
+  foreach ($exports as $export) {
+    $options[$export->name] = $export->title;
+  }
+
+  // Build the form.
+  $form['formio'] = array(
+    '#title' => 'Form.io Embed',
+    '#type' => 'fieldset',
+  );
+
+  if (empty($options)) {
+    $form['formio']['formio_preset_name'] = array(
+      '#prefix' => '<div class="no-presets-found">',
+      '#markup' => t('You need to add a preset first. !path', array('!path' => l(t('Here'), 'admin/structure/formio'))),
+      '#suffix' => '</div>',
+    );
+    $form['buttons']['return']['#access'] = FALSE;
+  }
+  else {
+    $form['formio']['formio_preset_name'] = array(
+      '#type' => 'select',
+      '#title' => t('Select the form.io preset'),
+      '#options' => $options,
+      '#default_value' => empty($delta) ? $conf['formio_preset_name'] : variable_get('formio_preset_name:' . $delta, ''),
+    );
+
+    $form['formio']['formio_use_bootswatch'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Use bootswatch'),
+      '#default_value' => empty($delta) ? $conf['formio_use_bootswatch'] : variable_get('formio_use_bootswatch:' . $delta, ''),
+    );
+
+    $form['formio']['formio_bootswatch_theme'] = array(
+      '#title' => t('Bootswatch Theme'),
+      '#default_value' => empty($delta) ? $conf['formio_bootswatch_theme'] : variable_get('formio_bootswatch_theme:' . $delta, ''),
+      '#states' => array(
+        'invisible' => array(
+          ':input[name="formio_use_bootswatch"]' => array('checked' => FALSE),
+        ),
+      ),
+    );
+    // Get possible Bootswatch themes from the Bootswatch api.
+    $swatches = formio_bootswatch();
+    // If we have trouble communicating with the api then just present the user
+    // with a textfield so they can enter the name of the theme.
+    if ($swatches == FALSE) {
+      $form['formio']['formio_bootswatch_theme']['#type'] = 'textfield';
+    }
+    // If we got a successful response from Bootswatch then populate a select
+    // list with the options.
+    else {
+      $form['formio']['formio_bootswatch_theme']['#type'] = 'select';
+      $form['formio']['formio_bootswatch_theme']['#options'] = $swatches;
+    }
+  }
+}
+
+/**
+ * Get Bootswatch theme options from their api.
+ *
+ * @return array|bool
+ *   Array of theme names if the api is up.
+ */
+function formio_bootswatch() {
+  $swatches = array();
+  $request = drupal_http_request('https://bootswatch.com/api/' . BOOTSWATCH_API . '.json');
+  if ($request->code == 200) {
+    $bootswatch = drupal_json_decode($request->data);
+
+    foreach ($bootswatch['themes'] as $theme) {
+      $name = $theme['name'];
+      $key = strtolower($name);
+      $swatches[$key] = $name;
+    }
+    return $swatches;
+  }
+  return FALSE;
+}
 
 /**
  * Use our own ajax callback for forms.
@@ -143,9 +258,7 @@ function formio_preprocess_formio_form(&$vars) {
 function formio_ajax_form_callback() {
   $result = '';
   list($form, $form_state, $form_id, $form_build_id, $commands) = ajax_get_form();
-//  ctools_include('content');
   drupal_process_form($form['#form_id'], $form, $form_state);
-
   if (!empty($form_state['triggering_element'])) {
     $callback = $form_state['triggering_element']['#ajax']['callback'];
   }
@@ -176,112 +289,4 @@ function formio_ajax_form_callback() {
   $result['#commands'] = array_merge($commands, $result['#commands']);
 
   return $result;
-}
-
-/**
- * Implements hook_trigger_info().
- */
-function formio_trigger_info() {
-  return array(
-    'formio' => array(
-      'formio_form_submission' => array(
-        'label' => t('Form submission'),
-      ),
-    ),
-  );
-}
-
-
-
-
-
-
-
-
-
-
-
-/**
- * Custom menu callback for an ajax auto-completion field.
- * @param string $string
- */
-function formio_ajax_autocomplete($string = '') {
-  $args = func_get_args();
-  if (!empty($args)) {
-    module_invoke_all('io_ajax_autocomplete_' . 'some_arg');
-  }
-  else {
-    if ($string) {
-      $result = db_select('formio_preset', 'fp')
-        ->fields('fp', array('id', 'title'))
-        ->condition('title', db_like($string) . '%', 'LIKE')
-        ->range(0, 25)
-        ->execute();
-      foreach ($result as $formio) {
-        $matches[$formio->title . "[id:  . $formio->id]"] = check_plain($formio->title);
-      }
-    }
-    drupal_json_output($matches);
-  }
-}
-
-/**
- * Implements hook_forms().
- */
-function formio_forms($form_id, $args) {
-  $forms = array();
-  if (strncmp($form_id, 'formio_form_', 12) === 0) {
-    $forms[$form_id] = array(
-      'callback' => 'formio_form_render',
-      'callback arguments' => array('args' => array($form_id, $args)),
-    );
-  }
-  else {
-
-  }
-  return $forms;
-}
-
-function formio_form_render($form, &$form_state, $args) {
-  $form_id = array_shift($args);
-  $args = array_shift($args);
-
-  if (isset($form_id)) {
-    $function = $form_id . '_form';
-    if (function_exists($function)) {
-      $function($form, $form_state, $args);
-    }
-  }
-  return $form;
-}
-
-/**
- * Form constructor for Calculations demo.
- */
-function formio_calculation($form, $form_state) {
-  // Load all plugins type "operation".
-  ctools_include('plugins');
-  $operations = ctools_get_plugins('example', 'operation');
-  $operation_options = array();
-
-  foreach ($operations as $id => $operation) {
-    $operation_options[$id] = $operation['label'];
-  }
-
-  if (empty($operation_options)) {
-    $form['message'] = array(
-      '#markup' => t('Sorry no operation plugins available in the system.'),
-    );
-    return $form;
-  }
-
-  $form['operations'] = array(
-    '#type' => 'checkboxes',
-    '#title' => t('Please choose Operations'),
-    '#options' => $operation_options,
-  );
-
-  // Form elements...
-
-  return $form;
 }
