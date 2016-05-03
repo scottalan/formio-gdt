@@ -38,6 +38,10 @@ class FormioActions implements FormioActionsInterface {
 
   /**
    * Used to implement the action.
+   *
+   * @param array $plugin
+   * @param string $preset_name
+   * @param object $export
    */
   function action($plugin, $preset_name, $export) {}
 }
