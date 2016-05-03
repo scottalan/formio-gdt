@@ -10,3 +10,8 @@
 #formio-form-render #formio-forms #form-group-submit {
   margin-top: 20px;
 }
+
+#ctools-export-ui-edit-item-wizard-form .preset-settings {
+  margin: 20px 0px;
+  padding: 10px;
+}
