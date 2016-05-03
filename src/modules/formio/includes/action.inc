@@ -13,14 +13,10 @@ function formio_actions_process(&$plugin, $info) {
 }
 
 /**
- * Fetch metadata on a specific action plugin.
+ * Fetches a specific formio action plugin.
  *
- * @param string $module
- *   Name of the module.
- * @param string $type
- *   Type of plugin, such as 'action_ui'.
- * @param string $file
- *   Name of action plugin file.
+ * @param string $plugin_name
+ *   Name of the plugin.
  *
  * @return
  *   An array with information about the requested action.
@@ -31,7 +27,7 @@ function formio_get_action($plugin_name) {
 }
 
 /**
- * Fetch metadata for all action plugins.
+ * Fetches all action plugins.
  *
  * @return
  *   An array of arrays with information about all available formio action
@@ -40,6 +36,19 @@ function formio_get_action($plugin_name) {
 function formio_get_actions() {
   ctools_include('plugins');
   return ctools_get_plugins('formio', 'actions');
+}
+
+/**
+ * Gets an action plugin from a module.
+ *
+ * @param string $module
+ * @param string $action
+ *
+ * @return mixed
+ */
+function formio_get_module_action($module, $action) {
+  ctools_include('plugins');
+  return ctools_get_plugins($module, 'actions', $action);
 }
 
 /**
@@ -72,17 +81,27 @@ function formio_actions_get_handler($plugin) {
 }
 
 /**
- * General submission handler called when a form.io form is submitted.
+ * Default submission handler.
+ *
+ * This is called when a form.io form is submitted. It calls the action()
+ * method of the plugin that defined it.
  *
  * @param string $plugin_name
  *   The name of the plugin defining the callback action.
- * @param array $args
- *   Arguments that will be passed to the action.
+ * @param string $preset_name
+ *   The name of the preset as stored in the database.
  */
-function formio_submission_handler($plugin_name, $args = NULL) {
-  $plugin = formio_get_action($plugin_name);
+function formio_submission_handler($plugin_name, $preset_name) {
+  // Load the preset export from the database.
+  ctools_include('export');
+  $export = ctools_export_crud_load(FORMIO_PRESET, $preset_name);
+  $key = $export->action;
+  list($module, $action) = explode(':', $key);
+
+  $plugin = formio_get_module_action($module, $action);
   $handler = formio_actions_get_handler($plugin);
   if ($handler) {
-    $handler->action($plugin, $args);
+    // We don't need to pass by reference to just call the method direct.
+    $handler->action($plugin, $preset_name, $export);
   }
 }
