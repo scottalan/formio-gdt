@@ -153,7 +153,6 @@ function formio_preset_edit_form_submit(&$form, &$form_state) {
   foreach($components as $component) {
     formio_add_field($formio_form['name'], $component);
   }
-  $test = 'test';
 }
 
 /**
@@ -255,9 +254,7 @@ function formio_preset_display_ajax($form, $form_state) {
   $commands = array();
   // The form to target via the api.
   $args = array(
-    'form' => isset($form_state['item']->id) ?
-      $form_state['item']->id :
-      $form_state['values']['formio_form'],
+    'form' => $form_state['values']['id'],
     'preset' => TRUE,
   );
   // Render the form block.

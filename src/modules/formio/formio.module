@@ -114,13 +114,13 @@ function formio_entity_info() {
       'controller class' => 'EntityAPIController',
       'base table' => 'formio',
       'fieldable' => TRUE,
-      'exportable' => TRUE,
+//      'exportable' => TRUE,
       'entity keys' => array(
-        'id' => 'pid',
-        'bundle' => 'name'
+        'id' => 'sid',
+        'bundle' => 'form'
       ),
       'bundle keys' => array(
-        'bundle' => 'name'
+        'bundle' => 'form'
       ),
       'bundles' => array(),
       'module' => 'formio'
@@ -133,7 +133,7 @@ function formio_entity_info() {
       'base table' => FORMIO_PRESET,
       'fieldable' => FALSE,
       'bundle of' => 'formio',
-      'exportable' => TRUE,
+//      'exportable' => TRUE,
       'entity keys' => array(
         'id' => 'pid',
         'name' => 'name',
@@ -153,6 +153,7 @@ function formio_entity_info() {
     );
   }
 
+  return $return;
 }
 
 /**
@@ -344,47 +345,47 @@ function formio_ajax_form_callback() {
   return $result;
 }
 
-function formio_forms() {
-  return array(
-    'test' => array(
-      'name' => 'test',
-      'title' => 'Test',
-      'path' => 'test_path',
-      'type' => 'resource',
-      '_id' => '552b22b3d70ef854300001e6',
-      'components' => array(
-        'list of components'
-      )
-    )
-  );
+/**
+ * Get defined forms from the database.
+ *
+ * @return mixed
+ */
+function formio_load_drupal_forms() {
+  $forms = db_select('formio_form', 'ff')
+    ->fields('ff')
+    ->condition('ff.action', 'drupal')
+    ->execute()
+    ->fetchAllAssoc('name');
+
+  return $forms;
 }
 
 /**
  * Implements hook_resource_plugin_alter()
  */
-//function formio_resource_plugin_alter(&$plugins) {
-//  // Not sure if we should use the entity definition or the form definition to
-//  // build the restful resource.
-//  $forms = formio_forms();
-//  foreach($forms as $key => $form) {
-//    $plugins[$form['name'] . ':1.0'] = array(
-//      'majorVersion' => 1,
-//      'minorVersion' => 0,
-//      'description' => 'Restful endpoints for ' . $form['title'],
-//      'authenticationTypes' => TRUE,
-//      'authenticationOptional' => TRUE,
-//      'discoverable' => TRUE,
-//      'dataProvider' => array(
-//        'entityType' => 'formio',
-//        'bundles' => array(
-//          $form['name']
-//        ),
-//      ),
-//      'name' => $form['name'] . ':1.0',
-//      'resource' => $form['path'],
-//      'label' => $form['title'],
-//      'class' => 'Drupal\formio\Plugin\resource\Formio',
-//      'provider' => 'formio'
-//    );
-//  }
-//}
+function formio_resource_plugin_alter(&$plugins) {
+  $forms = formio_load_drupal_forms();
+
+  foreach($forms as $key => $form) {
+    $plugins[$form->name . ':1.0'] = array(
+      'majorVersion' => 1,
+      'minorVersion' => 0,
+      'description' => 'Restful endpoints for ' . $form->title,
+      'authenticationTypes' => TRUE,
+      'authenticationOptional' => TRUE,
+      'discoverable' => TRUE,
+      'hookMenu' => TRUE,
+      'dataProvider' => array(
+        'entityType' => 'formio',
+        'bundles' => array(
+          $form->name
+        ),
+      ),
+      'name' => $form->name . ':1.0',
+      'resource' => $form->path,
+      'label' => $form->title,
+      'class' => 'Drupal\formio\Plugin\resource\Formio',
+      'provider' => 'formio'
+    );
+  }
+}
