@@ -7,7 +7,7 @@
 require_once 'includes/formio.inc';
 include_once 'formio.block.inc';
 
-define('FORMIO_PRESET','formio_preset');
+define('FORMIO_PRESET','formio_form');
 define('FORMIO_BLOCK','formio_block');
 
 /**
@@ -100,6 +100,59 @@ function formio_menu() {
   formio_admin_menu_hook($items);
 
   return $items;
+}
+
+/*
+ * Define the formio entity and formio form entity.
+ */
+function formio_entity_info() {
+  $return = array(
+    'formio' => array(
+      'label' => t('Formio Submission'),
+      'plural label' => t('Formio Submissions'),
+      'entity class' => 'EntityClass',
+      'controller class' => 'EntityAPIController',
+      'base table' => 'formio',
+      'fieldable' => TRUE,
+      'exportable' => TRUE,
+      'entity keys' => array(
+        'id' => 'pid',
+        'bundle' => 'name'
+      ),
+      'bundle keys' => array(
+        'bundle' => 'name'
+      ),
+      'bundles' => array(),
+      'module' => 'formio'
+    ),
+    FORMIO_PRESET => array(
+      'label' => t('Formio Form'),
+      'plural label' => t('Formio Forms'),
+      'entity class' => 'Entity',
+      'controller class' => 'EntityAPIControllerExportable',
+      'base table' => FORMIO_PRESET,
+      'fieldable' => FALSE,
+      'bundle of' => 'formio',
+      'exportable' => TRUE,
+      'entity keys' => array(
+        'id' => 'pid',
+        'name' => 'name',
+      ),
+      'module' => 'formio',
+    )
+  );
+
+  $types = db_select(FORMIO_PRESET, 'ff')
+    ->fields('ff')
+    ->execute()
+    ->fetchAllAssoc('name');
+
+  foreach ($types as $name => $type) {
+    $return['formio']['bundles'][$name] = array(
+      'label' => $type->title,
+    );
+  }
+
 }
 
 /**
@@ -290,3 +343,48 @@ function formio_ajax_form_callback() {
 
   return $result;
 }
+
+function formio_forms() {
+  return array(
+    'test' => array(
+      'name' => 'test',
+      'title' => 'Test',
+      'path' => 'test_path',
+      'type' => 'resource',
+      '_id' => '552b22b3d70ef854300001e6',
+      'components' => array(
+        'list of components'
+      )
+    )
+  );
+}
+
+/**
+ * Implements hook_resource_plugin_alter()
+ */
+//function formio_resource_plugin_alter(&$plugins) {
+//  // Not sure if we should use the entity definition or the form definition to
+//  // build the restful resource.
+//  $forms = formio_forms();
+//  foreach($forms as $key => $form) {
+//    $plugins[$form['name'] . ':1.0'] = array(
+//      'majorVersion' => 1,
+//      'minorVersion' => 0,
+//      'description' => 'Restful endpoints for ' . $form['title'],
+//      'authenticationTypes' => TRUE,
+//      'authenticationOptional' => TRUE,
+//      'discoverable' => TRUE,
+//      'dataProvider' => array(
+//        'entityType' => 'formio',
+//        'bundles' => array(
+//          $form['name']
+//        ),
+//      ),
+//      'name' => $form['name'] . ':1.0',
+//      'resource' => $form['path'],
+//      'label' => $form['title'],
+//      'class' => 'Drupal\formio\Plugin\resource\Formio',
+//      'provider' => 'formio'
+//    );
+//  }
+//}

@@ -11,15 +11,15 @@ function formio_schema() {
  * Schema version 1.
  */
 function formio_schema_1() {
-  $schema[FORMIO_PRESET] = array(
-    'description' => t('Table storing preset definitions.'),
+  $schema['formio_form'] = array(
+    'description' => t('Table storing form definitions.'),
     'export' => array(
       'key' => 'name',
       'key name' => 'Unique Name',
       'admin_title' => 'title',
       'primary key' => 'pid',
       'identifier' => 'formio',
-      'default hook' => FORMIO_PRESET,
+      'default hook' => 'formio_form',
       'export type string' => 'state',
       'api' => array(
         'owner' => 'formio',
@@ -36,11 +36,6 @@ function formio_schema_1() {
       'delete callback' => 'formio_export_delete',
     ),
     'fields' => array(
-      'name' => array(
-        'type' => 'varchar',
-        'length' => '255',
-        'description' => 'Unique ID for the preset.',
-      ),
       'pid' => array(
         'type' => 'serial',
         'unsigned' => TRUE,
@@ -48,33 +43,109 @@ function formio_schema_1() {
         'description' => 'Primary ID field for the table. Not used for anything except internal lookups.',
         'no export' => TRUE, // Do not export database-only keys.
       ),
-      'title' => array(
+      'name' => array(
         'type' => 'varchar',
         'length' => '255',
-        'description' => 'A human readable name of a preset.',
+        'description' => 'Unique ID for the form.',
       ),
       'id' => array(
         'type' => 'varchar',
-        'length' => '32',
+        'length' => '24',
         'description' => 'The _id of the Formio form.',
+      ),
+      'title' => array(
+        'type' => 'varchar',
+        'length' => '255',
+        'description' => 'A human readable name of a form.',
+      ),
+      'path' => array(
+        'type' => 'varchar',
+        'length' => '255',
+        'description' => 'The form path on formio.',
+      ),
+      'type' => array(
+        'type' => 'varchar',
+        'length' => '255',
+        'description' => 'Type of form. Typically form or resource.',
+      ),
+      'created' => array(
+        'description' => 'The Unix timestamp when the form was created.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'changed' => array(
+        'description' => 'The Unix timestamp when the form was most recently saved.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'components' => array(
+        'type' => 'blob',
+        'not null' => FALSE,
+        'size' => 'big',
+        'serialize' => TRUE,
+        'description' => 'A serialized array of components on this form.',
       ),
       'action' => array(
         'type' => 'varchar',
         'length' => '64',
         'description' => 'The action that will performed when the form is submitted.',
       ),
-      'settings' => array(
+      'action_settings' => array(
         'type' => 'blob',
         'not null' => FALSE,
         'size' => 'big',
         'serialize' => TRUE,
-        'description' => 'A serialized array of settings specific to this preset.',
+        'description' => 'A serialized array of action settings specific to this form.',
       ),
     ),
     'primary key' => array('pid'),
     'unique keys' => array(
       'name' => array('name'),
     ),
+  );
+
+  $schema['formio'] = array(
+    'description' => 'Table storing formio submissions',
+    'fields' => array(
+      'sid' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Submission ID field for the table.',
+        'no export' => TRUE, // Do not export database-only keys.
+      ),
+      'id' => array(
+        'type' => 'varchar',
+        'length' => '24',
+        'description' => 'The _id of the Formio submission.',
+      ),
+      'form' => array(
+        'type' => 'varchar',
+        'length' => '255',
+        'description' => 'The form for this submission.',
+      ),
+      'owner' => array(
+        'description' => 'The {users}.uid that owns this node; initially, this is the user that created it.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'created' => array(
+        'description' => 'The Unix timestamp when the node was created.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'changed' => array(
+        'description' => 'The Unix timestamp when the node was most recently saved.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('sid'),
   );
   return $schema;
 }

@@ -25,6 +25,41 @@ function formio_rest($path, $params = array(), $method = 'GET') {
   return $request;
 }
 
+/*
+ * Return a flattened list of components.
+ */
+function formio_flatten_components($components, $includeAll = FALSE) {
+  $flattened = array();
+
+  foreach($components as $component) {
+    $hasColumns = isset($component['columns']);
+    $hasRows = isset($component['rows']);
+    $hasComps = isset($component['components']);
+    $isTree = isset($component['tree']) && $component['tree'];
+    $noRecurse = FALSE;
+    if ($includeAll || $isTree || (!$hasColumns && !$hasRows && !$hasComps)) {
+      $flattened[$component['key']] = $component;
+    }
+    else {
+      if ($hasColumns) {
+        foreach($component['columns'] as $column) {
+          array_merge($flattened, formio_flatten_components($column['components'], $includeAll));
+        }
+      }
+      elseif ($hasRows) {
+        foreach($component['rows'] as $row) {
+          array_merge($flattened, formio_flatten_components($row['components'], $includeAll));
+        }
+      }
+      elseif ($hasComps) {
+        array_merge($flattened, formio_flatten_components($component['components'], $includeAll));
+      }
+    }
+  }
+
+  return $flattened;
+}
+
 function formio_passthrough($module, $type, &$items, $append = NULL) {
   $files = file_scan_directory(drupal_get_path('module', $module) . '/includes', '/\.' . $type . '\.inc$/', array('key' => 'name'));
   foreach ($files as $file) {
@@ -72,7 +107,7 @@ class Formio implements FormioFormControllerInterface{
   public $status;
   public $response;
   public $project;
-  public $forms = array();
+  public $result = array();
 
   /**
    * @return string
@@ -233,7 +268,7 @@ class Formio implements FormioFormControllerInterface{
       return FALSE;
     }
 
-    $this->forms = drupal_json_decode($request->data);
+    $this->result = drupal_json_decode($request->data);
 
     return $this;
 
@@ -249,11 +284,11 @@ class Formio implements FormioFormControllerInterface{
    */
   public function fetchKeyed($key) {
     $results = array();
-    if (isset($this->forms[$key])) {
+    if (isset($this->result[$key])) {
       $results = $this;
     }
     else {
-      foreach ($this->forms as $delta => $form) {
+      foreach ($this->result as $delta => $form) {
         $results[$form[$key]] = $form;
       }
     }
@@ -265,7 +300,7 @@ class Formio implements FormioFormControllerInterface{
    */
   public function fetchOptions() {
     $results = array();
-    foreach ($this->forms as $delta => $form) {
+    foreach ($this->result as $delta => $form) {
       $results[$form['_id']] = array(
         'path' => $form['path'],
         'title' => $form['title'],
@@ -279,7 +314,7 @@ class Formio implements FormioFormControllerInterface{
    */
   public function fetchComponents() {
     $results = array();
-    $components = $this->forms['components'];
+    $components = $this->result['components'];
     foreach ($components as $component) {
       if ($component['type'] != 'button') {
         $results[] = array(
@@ -298,10 +333,10 @@ class Formio implements FormioFormControllerInterface{
    */
   public function selectDisplay() {
     $display = array();
-    foreach($this->forms as $key => $form) {
+    foreach($this->result as $key => $form) {
       $display[$form['name']] = $form['title'];
     }
-    $this->forms = $display;
+    $this->result = $display;
   }
 
 }

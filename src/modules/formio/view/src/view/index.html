@@ -78,9 +78,7 @@
         <a class="navbar-brand" ng-cloak>{{ form.title }}</a>
       </div>
       <div class="collapse navbar-collapse">
-        <p class="navbar-text navbar-right"><a href="https://form.io"
-                                               class="navbar-link">powered by
-          &lt;form.io&gt;</a></p>
+        <p class="navbar-text navbar-right"><a href="https://form.io" class="navbar-link">powered by &lt;form.io&gt;</a></p>
       </div>
     </div>
   </nav>
@@ -217,7 +215,9 @@
 
         // Load the form.
         (new Formio(form)).loadForm().then(function (form) {
+          if (form.action) {
             form.action = drupalSettings.action;
+          }
           $rootScope.form = form;
         });
 

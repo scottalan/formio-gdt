@@ -4,4 +4,8 @@ core = 7.x
 package = form.io
 configure = admin/config/formio/settings
 dependencies[] = ctools
+dependencies[] = entity
+dependencies[] = restful
 files[] = includes/formio.inc
+
+registry_autoload[] = PSR-4
