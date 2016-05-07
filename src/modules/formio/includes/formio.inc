@@ -25,7 +25,7 @@ function formio_rest($path, $params = array(), $method = 'GET') {
   return $request;
 }
 
-/*
+/**
  * Return a flattened list of components.
  */
 function formio_flatten_components($components, $includeAll = FALSE) {
@@ -46,7 +46,7 @@ function formio_flatten_components($components, $includeAll = FALSE) {
           array_merge($flattened, formio_flatten_components($column['components'], $includeAll));
         }
       }
-      elseif ($hasRows) {
+      elseif ($hasRows && is_array($component['rows'])) {
         foreach($component['rows'] as $row) {
           array_merge($flattened, formio_flatten_components($row['components'], $includeAll));
         }
@@ -116,7 +116,7 @@ class Formio implements FormioFormControllerInterface{
     // If this doesn't work go and get a new one. (May Expire).
     $apikey = trim(variable_get('formio_project_api_key', FALSE));
     if (!isset($apikey) || empty($apikey)) {
-      drupal_set_message(t('Looks like you need an API Key. Visit !formio and create one.', array('!formio', l('Form.io', 'https://form.io'))), 'warning');
+      drupal_set_message(t('Looks like you need an API Key. Visit !formio to create one now.', array('!formio' => l('Form.io', 'https://form.io'))), 'warning');
     }
     return $apikey;
   }
