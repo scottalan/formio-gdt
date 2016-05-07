@@ -1,7 +1,16 @@
 {
   "srcPaths": {
     "make": "src/project.make",
-    "drupal": "src"
+    "drupal": "src",
+    "build": "build/html"
+  },
+  "si": {
+    "profile": "standard",
+    "db": "mysql://scott:scottlocal@localhost/formio",
+    "name": "admin",
+    "pass": "scott",
+    "su": "root",
+    "supw": "scottlocal"
   },
   "domain": "formio.dev",
   "packages": {
@@ -19,20 +28,21 @@
     "path": "vendor/bin/phpmd"
   },
   "drush": {
-    "cmd": "vendor/bin/drush"
+    "cmd": "$(which drush)"
   },
   "behat": {
     "flags": "--tags ~@wip"
   },
   "eslint": true,
-  "scripts": {
-    "update": "<%= config.drush.cmd %> <%= config.alias %> features-revert-all -yv"
-  },
   "project": {
     "profile": "standard"
   },
   "generated": {
     "name": "generator-gadget",
     "version": "0.4.0"
+  },
+  "scripts": {
+    "update": "<%= config.drush.cmd %> features-revert-all -yv",
+    "enable": "cd <%= config.srcPaths.build %> && <%=config.drush.cmd %> en formio_demo -yv"
   }
 }
