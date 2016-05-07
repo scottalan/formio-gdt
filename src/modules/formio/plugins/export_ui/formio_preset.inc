@@ -45,8 +45,6 @@ function formio_preset_edit_form(&$form, &$form_state) {
   // Remove title and name as we will get it from the form.
   unset($form['info']);
 
-  // @todo: sassify this!
-  $form['#attached']['css'][drupal_get_path('module', 'formio') . '/css/formio.css'] = array();
   drupal_add_library('formio', 'seamless');
 
   $formio_forms = formio_get_forms();
@@ -171,7 +169,8 @@ function formio_preset_edit_form_submit(&$form, &$form_state) {
  */
 function formio_add_field($bundle, $component) {
   $entity = 'formio';
-  $key = $component['key'];
+  // Make our field keys unique.
+  $key = 'formio_' . $component['key'];
   $type = $component['type'];
   $label = $component['label'];
 
@@ -189,8 +188,8 @@ function formio_add_field($bundle, $component) {
           'type' => 'text',
           'entity_types' => array($entity),
         );
+        $field = field_create_field($field);
       }
-      $field = field_create_field($field);
       if (empty($instance)) {
         $instance = array(
           'field_name' => $key,
