@@ -78,8 +78,6 @@ projects[views][patch][5] = "https://www.drupal.org/files/issues/2473389-views-e
 
 projects[views_bulk_operations][version] = "3.3"
 
-projects[webform][version] = "4.12"
-
 ;;; Theme
 projects[bootstrap][version] = "3.5"
 projects[bootstrap][type] = "theme"
