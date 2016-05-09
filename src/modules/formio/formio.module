@@ -157,7 +157,7 @@ function formio_entity_info() {
 }
 
 /**
- * Helper to get a preset by pid.
+ * Helper to get a preset by preset id.
  *
  * @param int $pid
  *   The unique pid of a preset.
@@ -165,7 +165,7 @@ function formio_entity_info() {
  * @return array
  *   The preset.
  */
-function formio_get_preset_by_pid($pid) {
+function formio_get_export_by_pid($pid) {
   $preset = db_select(FORMIO_PRESET, 'p')
     ->fields('p')
     ->condition('p.pid', $pid)
@@ -175,6 +175,9 @@ function formio_get_preset_by_pid($pid) {
   return $preset;
 }
 
+/**
+ * Implements hook_preprocess_formio_form().
+ */
 function formio_preprocess_formio_form(&$vars) {
   global $base_url;
   $form = &$vars['form'];
@@ -209,29 +212,29 @@ function formio_preprocess_formio_form(&$vars) {
  * form whether it be in a pane or a block.
  *
  * @param array $form
+ * @param array $conf
  */
 function formio_display_config_form(&$form, $conf) {
   $options = array();
 
   $delta = is_array($conf) ? FALSE : (is_string($conf) ? TRUE : '');
 
-  // Get all presets.
-  ctools_include('export');
-  $exports = ctools_export_crud_load_all(FORMIO_PRESET, TRUE);
+  // Get all form exports.
+  $exports = formio_get_all_exports();
 
-  // Build the options for the presets.
+  // Build the options based on exports.
   foreach ($exports as $export) {
-    $options[$export->name] = $export->title;
+    $options[$export->pid . ':' . $export->name] = $export->title;
   }
 
   // Build the form.
   $form['formio'] = array(
-    '#title' => 'Form.io Embed',
+    '#title' => 'Form',
     '#type' => 'fieldset',
   );
 
   if (empty($options)) {
-    $form['formio']['formio_preset_name'] = array(
+    $form['formio']['formio_export'] = array(
       '#prefix' => '<div class="no-presets-found">',
       '#markup' => t('You need to add a preset first. !path', array('!path' => l(t('Here'), 'admin/structure/formio'))),
       '#suffix' => '</div>',
@@ -239,11 +242,11 @@ function formio_display_config_form(&$form, $conf) {
     $form['buttons']['return']['#access'] = FALSE;
   }
   else {
-    $form['formio']['formio_preset_name'] = array(
+    $form['formio']['formio_export'] = array(
       '#type' => 'select',
-      '#title' => t('Select the form.io preset'),
+      '#title' => t('Form Export'),
       '#options' => $options,
-      '#default_value' => empty($delta) ? $conf['formio_preset_name'] : variable_get('formio_preset_name:' . $delta, ''),
+      '#default_value' => empty($delta) ? $conf['formio_export'] : variable_get('formio_export:' . $delta, ''),
     );
 
     $form['formio']['formio_use_bootswatch'] = array(

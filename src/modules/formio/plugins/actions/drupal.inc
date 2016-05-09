@@ -5,16 +5,15 @@
  */
 
 $plugin = array(
-  'title' => t('Create Entity'),
+  'title' => t('Create Formio Entity'),
 
   'handler' => array(
-    'class' => 'FormioEntity',
+    'class' => 'FormioDrupal',
     'parent' => 'FormioDefault',
   ),
 
   'has menu' => FALSE,
   'has actions' => TRUE,
-  'action ui' => 'formio:entity-ui',
   'access' => TRUE,
 
 );

@@ -1,4 +1,8 @@
 <?php
+/**
+ * @file
+ * A ctools content type plugin that renders a form.io form.
+ */
 
 define('BOOTSWATCH_API', '3');
 
@@ -7,24 +11,26 @@ $plugin = array(
   'description' => t('Renders an embedded form from Form.io'),
   'single' => TRUE,
   'category' => array(t('form.io'), -10),
-  'edit form' => 'formio_form_content_type_edit_form',
-  'render callback' => 'formio_form_content_type_render',
-  'hook theme' => 'formio_form_content_type_theme',
+  'edit form' => 'formio_formio_form_content_type_edit_form',
+  'render callback' => 'formio_formio_form_content_type_render',
+  'hook theme' => 'formio_formio_form_content_type_theme',
   'bootswatch api' => 'formio_form_content_type_bootswatch',
-  'admin info' => t('Renders a form.io form and executes an action defined by the preset.')
+  'admin info' => 'formio_formio_form_content_type_admin_info',
 );
 
-function formio_form_content_type_edit_form($form, &$form_state) {
-  $options = array();
-
+/**
+ * Implements the plugin edit form.
+ */
+function formio_formio_form_content_type_edit_form($form, &$form_state) {
   $conf = $form_state['conf'];
-
   formio_display_config_form($form, $conf);
-
   return $form;
 }
 
-function formio_form_content_type_edit_form_submit($form, &$form_state) {
+/**
+ * Implements the plugin edit form submission.
+ */
+function formio_formio_form_content_type_edit_form_submit($form, &$form_state) {
   foreach (array_keys($form_state['values']) as $key) {
     if (isset($form_state['values'][$key])) {
       $form_state['conf'][$key] = $form_state['values'][$key];
@@ -32,7 +38,10 @@ function formio_form_content_type_edit_form_submit($form, &$form_state) {
   }
 }
 
-function formio_form_content_type_render($subtype, $conf, $args, $context) {
+/**
+ * Implements the plugin render callback.
+ */
+function formio_formio_form_content_type_render($subtype, $conf, $args, $context) {
   if (isset($args['preset'])) {
     $id = $args['form'];
   }
@@ -44,18 +53,21 @@ function formio_form_content_type_render($subtype, $conf, $args, $context) {
   }
   else {
     // Values could come from a pane or a block.
-    // @todo: Maybe the block could just use conf as well.
-    $name = isset($conf['formio_preset_name']) ? $conf['formio_preset_name'] : $args['formio_preset_name'];
+    // @todo: What now? If the {formio_form} is updated it breaks the display.
+    $key = isset($conf['formio_export']) ? $conf['formio_export'] : $args['formio_export'];
     $use_theme = isset($conf['formio_use_bootswatch']) ? $conf['formio_use_bootswatch'] : $args['formio_use_bootswatch'];
     $theme = isset($conf['formio_bootswatch_theme']) ? $conf['formio_bootswatch_theme'] : $args['formio_bootswatch_theme'];
 
-    $preset = ctools_export_crud_load(FORMIO_PRESET, $name);
+    // @todo: What now? If the {formio_form} is updated it breaks the display.
+    list($pid, $name) = explode(':', $key);
+
+    $export = formio_get_export($name);
 
     $form = array(
-      'pid' => $preset->pid,
-      'id' => $preset->id,
-      'name' => $preset->name,
-      'action' => $preset->action,
+      'pid' => $export->pid,
+      'id' => $export->id,
+      'name' => $export->name,
+      'action' => $export->action,
       'theme' => $theme,
       'use_theme' => $use_theme,
     );
@@ -128,7 +140,7 @@ function formio_form_content_type_setting_data($id) {
 /**
  * Implements ctools content types plugin hook theme.
  */
-function formio_form_content_type_theme(&$theme, $plugin) {
+function formio_formio_form_content_type_theme(&$theme, $plugin) {
   $path = $plugin['path'] . '/theme';
   $theme['formio_form'] = array(
     'variables' => array(
@@ -137,4 +149,12 @@ function formio_form_content_type_theme(&$theme, $plugin) {
     'path' => $path,
     'template' => 'formio-form',
   );
+}
+
+function formio_formio_form_content_type_admin_info() {
+  return t('Renders a form.io form and executes an action defined by the preset.');
+}
+
+function formio_formio_form_content_type_admin_title() {
+  return t('Form.io Export');
 }

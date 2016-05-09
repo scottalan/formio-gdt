@@ -74,6 +74,82 @@ function formio_passthrough($module, $type, &$items, $append = NULL) {
   }
 }
 
+/**
+ * Get all forms from form.io.
+ *
+ * @param bool $reset
+ * @return array
+ */
+function formio_get_formio_forms($reset = FALSE) {
+  static $drupal_static_fast;
+  if (!isset($drupal_static_fast)) {
+    $drupal_static_fast = &drupal_static(__FUNCTION__);
+  }
+  $formio = &$drupal_static_fast;
+
+  if ($reset || !isset($formio)) {
+    $formio = formio_rest('form', array('type' => 'form', 'limit' => 99999));
+  }
+
+  return $formio->result;
+}
+
+/**
+ * Get all forms that are presets.
+ *
+ * @param bool $reset
+ *   Allows flushing the static cache.
+ *
+ * @return array
+ *   All preset forms.
+ */
+function formio_get_all_exports($reset = FALSE) {
+  ctools_include('export');
+  return ctools_export_crud_load_all(FORMIO_PRESET, $reset);
+}
+
+/**
+ * Get multiple forms that are presets.
+ *
+ * @param array $names
+ *   An array of preset names.
+ *
+ * @return array
+ *   Multiple presets.
+ */
+function formio_get_exports(array $names) {
+  ctools_include('export');
+  return ctools_export_crud_load_multiple(FORMIO_PRESET, $names);
+}
+
+/**
+ * Get a single preset form.
+ *
+ * @param string $name
+ *   The name of the preset.
+ *
+ * @return array
+ *   A single preset.
+ *
+ *
+ * @todo: What now? If the {formio_form} is updated it breaks the display.
+ */
+function formio_get_export($export) {
+  if (is_numeric($export)) {
+    return formio_get_export_by_pid($export);
+  }
+  ctools_include('export');
+  return ctools_export_crud_load(FORMIO_PRESET, $name);
+}
+
+/**
+ * Remove an item from the object cache.
+ */
+function formio_clear_form_cache($name) {
+  ctools_include('object-cache');
+  ctools_object_cache_clear(FORMIO_PRESET, $name);
+}
+
 interface FormioFormControllerInterface {
 
   /**

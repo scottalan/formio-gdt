@@ -1,10 +1,10 @@
 <?php
 /**
  * @file
- * Defines the FormioEntity class.
+ * Defines the FormioDrupal class.
  */
 
-class FormioEntity extends FormioDefault {
+class FormioDrupal extends FormioDefault {
 
   var $type;
   var $bundle;

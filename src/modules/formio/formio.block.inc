@@ -38,7 +38,7 @@ function formio_block_configure($delta = '') {
  */
 function formio_block_save($delta = '', $edit = array()) {
   if (formio_block_is_formio($delta)) {
-    variable_set('formio_preset_name:' . $delta, $edit['formio_preset_name']);
+    variable_set('formio_export:' . $delta, $edit['formio_export']);
     variable_set('formio_use_bootswatch:' . $delta, $edit['formio_use_bootswatch']);
     variable_set('formio_bootswatch_theme:' . $delta, $edit['formio_bootswatch_theme']);
   }

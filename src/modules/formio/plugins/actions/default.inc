@@ -5,7 +5,7 @@
  */
 
 $plugin = array(
-  'title' => t('Form.io Submission'),
+  'title' => t('Send to form.io'),
   'handler' => array(
     'class' => 'FormioDefault',
   ),

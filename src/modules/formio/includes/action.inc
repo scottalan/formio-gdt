@@ -88,20 +88,20 @@ function formio_actions_get_handler($plugin) {
  *
  * @param string $plugin_name
  *   The name of the plugin defining the callback action.
- * @param string $preset_name
- *   The name of the preset as stored in the database.
+ * @param string $name
+ *   The name of the export stored in the database.
  */
-function formio_submission_handler($plugin_name, $preset_name) {
+function formio_submission_handler($plugin_name, $name) {
   // Load the preset export from the database.
   ctools_include('export');
-  $export = ctools_export_crud_load(FORMIO_PRESET, $preset_name);
+  $export = formio_get_export($name);
   $key = $export->action;
   list($module, $action) = explode(':', $key);
 
   $plugin = formio_get_module_action($module, $action);
   $handler = formio_actions_get_handler($plugin);
   if ($handler) {
-    // We don't need to pass by reference to just call the method direct.
-    $handler->action($plugin, $preset_name, $export);
+    // Call the handler's action.
+    $handler->action($plugin, $name, $export);
   }
 }
