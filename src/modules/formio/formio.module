@@ -9,6 +9,7 @@ include_once 'formio.block.inc';
 
 define('FORMIO_PRESET','formio_form');
 define('FORMIO_BLOCK','formio_block');
+define('BOOTSWATCH_API', '3');
 
 /**
  * Implements hook_ctools_plugin_api().
@@ -179,7 +180,6 @@ function formio_get_export_by_pid($pid) {
  * Implements hook_preprocess_formio_form().
  */
 function formio_preprocess_formio_form(&$vars) {
-  global $base_url;
   $form = &$vars['form'];
 
   // The form.io form _id and the name of the preset.
@@ -190,7 +190,8 @@ function formio_preprocess_formio_form(&$vars) {
     $callback = '';
   }
   else {
-    $callback = $base_url . '/formio/' . $vars['name'];
+    $url = variable_get('restful_hook_menu_base_path', 'api') . '/' . $form['path'];
+    $callback = url($url, array('absolute' => TRUE));
   }
 
   // Set the callback.
@@ -349,7 +350,7 @@ function formio_ajax_form_callback() {
 }
 
 /**
- * Get defined forms from the database.
+ * Get d  efined forms from the database.
  *
  * @return mixed
  */

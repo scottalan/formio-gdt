@@ -47,7 +47,7 @@ function formio_block_save($delta = '', $edit = array()) {
 /**
  * Implements hook_block_view().
  */
-function formio_block_view($delta = '', $args) {
+function formio_block_view($delta = '', $args = '') {
   if (formio_block_is_formio($delta)) {
     ctools_include('content');
     $block = array();

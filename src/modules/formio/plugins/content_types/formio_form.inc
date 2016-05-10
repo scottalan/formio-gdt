@@ -4,8 +4,6 @@
  * A ctools content type plugin that renders a form.io form.
  */
 
-define('BOOTSWATCH_API', '3');
-
 $plugin = array(
   'title' => t('Form.io'),
   'description' => t('Renders an embedded form from Form.io'),
@@ -107,7 +105,7 @@ function formio_formio_form_content_type_render($subtype, $conf, $args, $context
  */
 function formio_form_content_type_add_headers() {
   return array(
-    array('x-jwt-token', formio_form_content_type_api_key()),
+//    array('x-jwt-token', formio_form_content_type_api_key()),
     array('Accept', 'application/json'),
     array('Access-Control-Request-Method', 'POST, GET, OPTIONS'),
   );

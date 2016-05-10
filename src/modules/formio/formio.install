@@ -46,17 +46,27 @@ function formio_schema_1() {
       'name' => array(
         'type' => 'varchar',
         'length' => '255',
-        'description' => 'Unique ID for the form.',
+        'description' => 'Name for the form.',
+      ),
+      'title' => array(
+        'type' => 'varchar',
+        'length' => '255',
+        'description' => 'Title for the form.',
       ),
       'id' => array(
         'type' => 'varchar',
         'length' => '24',
         'description' => 'The _id of the Formio form.',
       ),
-      'title' => array(
+      'form_name' => array(
         'type' => 'varchar',
         'length' => '255',
-        'description' => 'A human readable name of a form.',
+        'description' => 'Formio form name.',
+      ),
+      'form_title' => array(
+        'type' => 'varchar',
+        'length' => '255',
+        'description' => 'Formio form title.',
       ),
       'path' => array(
         'type' => 'varchar',

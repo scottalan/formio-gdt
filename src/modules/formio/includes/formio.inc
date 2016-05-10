@@ -201,7 +201,7 @@ class Formio implements FormioFormControllerInterface{
    * @return array
    */
   protected function setApiKey() {
-    return array('x-jwt-token' => $this->apiKey());
+    return array('x-token' => $this->apiKey());
   }
 
   protected function setPostHeader() {

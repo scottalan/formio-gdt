@@ -63,9 +63,6 @@ function formio_form_display_form($form, &$form_state) {
 }
 
 function formio_form_edit_form(&$form, &$form_state) {
-  // Remove title and name as we will get it from the form.
-  unset($form['info']);
-
   drupal_add_library('formio', 'seamless');
 
   // Add the form selection part of the form.
@@ -205,8 +202,8 @@ function formio_form_edit_form_submit(&$form, &$form_state) {
   }
   // Get form and fill in additional form details.
   $formio_form = formio_get_form($form_state['item']->id);
-  $form_state['item']->name = $formio_form['name'];
-  $form_state['item']->title = $formio_form['title'];
+  $form_state['item']->form_name = $formio_form['name'];
+  $form_state['item']->form_title = $formio_form['title'];
   $form_state['item']->path = $formio_form['path'];
   $form_state['item']->type = $formio_form['type'];
   $form_state['item']->components = $formio_form['components'];
@@ -218,7 +215,7 @@ function formio_form_edit_form_submit(&$form, &$form_state) {
     formio_add_field($formio_form['name'], $component);
   }
 
-  formio_clear_form_cache();
+  formio_clear_form_cache($formio_form['name']);
 }
 
 /**
@@ -237,8 +234,8 @@ function formio_form_edit_form_submit(&$form, &$form_state) {
  */
 function formio_add_field($bundle, $component) {
   $entity = 'formio';
-  // Make our field keys unique.
-  $key = 'formio_' . $component['key'];
+  // Convert from camelCase to underscore_notation and prefix with formio_.
+  $key = 'formio_' . strtolower(preg_replace('/([a-z])([A-Z])/', '$1_$2', $component['key']));
   $type = $component['type'];
   $label = $component['label'];
 
