@@ -66,6 +66,7 @@ function formio_formio_form_content_type_render($subtype, $conf, $args, $context
       'id' => $export->id,
       'name' => $export->name,
       'action' => $export->action,
+      'path' => $export->path,
       'theme' => $theme,
       'use_theme' => $use_theme,
     );

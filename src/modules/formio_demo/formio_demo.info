@@ -6,7 +6,6 @@ dependencies[] = defaultconfig
 dependencies[] = features
 dependencies[] = formio
 dependencies[] = jquery_update
-dependencies[] = navbar
 dependencies[] = panelizer
 features[defaultconfig][] = strongarm:admin_theme
 features[defaultconfig][] = strongarm:node_admin_theme

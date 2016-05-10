@@ -174,7 +174,7 @@
 
 <!-- Add the form.io form. -->
 <div class="container main">
-  <formio form="form"></formio>
+  <formio src="src"></formio>
 </div>
 <script
     src="https://cdn.rawgit.com/jakearchibald/es6-promise/v3.0.2/dist/es6-promise.min.js"></script>
@@ -207,30 +207,25 @@
           form = 'https://' + paths.shift() + '.form.io/' + paths.join('/');
         }
 
-        // Load the Drupal Settings.
-        var drupalSettings = JSON.parse(localStorage.getItem('formio-form-' + query.name));
-
         // Setup the form.
         $rootScope.form = {};
 
         // Load the form.
-        (new Formio(form)).loadForm().then(function (form) {
-          if (form.action) {
-            form.action = drupalSettings.action;
-          }
-          $rootScope.form = form;
-        });
+        $rootScope.src = form;
 
         // Bind to the submission of the form.
-        $rootScope.$on('formSubmission', function (event, submission) {
-          if (!submission) {
-            return;
-          }
-          $http.post(drupalSettings.action, submission).success(function (submission) {
-            Formio.clearCache();
-            parentPage.send({formSubmission: submission});
+        if (query.action) {
+          $rootScope.$on('formSubmit', function (event, submission) {
+            event.preventDefault();
+            if (!submission) {
+              return;
+            }
+            $http.post(query.action, submission).success(function (submission) {
+              Formio.clearCache();
+              parentPage.send({formSubmission: submission});
+            });
           });
-        });
+        }
       }]);
 </script>
 </body>

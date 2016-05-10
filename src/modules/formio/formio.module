@@ -186,7 +186,7 @@ function formio_preprocess_formio_form(&$vars) {
   $vars['_id'] = $form['id'];
   $vars['name'] = isset($form['name']) ? $form['name'] : 'new-preset';
 
-  if ($vars['name'] == 'new-preset') {
+  if ($form['action'] != 'drupal') {
     $callback = '';
   }
   else {
@@ -375,7 +375,7 @@ function formio_resource_plugin_alter(&$plugins) {
       'majorVersion' => 1,
       'minorVersion' => 0,
       'description' => 'Restful endpoints for ' . $form->title,
-      'authenticationTypes' => TRUE,
+      'authenticationTypes' => FALSE,
       'authenticationOptional' => TRUE,
       'discoverable' => TRUE,
       'hookMenu' => TRUE,
