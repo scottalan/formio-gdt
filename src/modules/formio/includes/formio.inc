@@ -139,7 +139,7 @@ function formio_get_export($export) {
     return formio_get_export_by_pid($export);
   }
   ctools_include('export');
-  return ctools_export_crud_load(FORMIO_PRESET, $name);
+  return ctools_export_crud_load(FORMIO_PRESET, $export);
 }
 
 /**
