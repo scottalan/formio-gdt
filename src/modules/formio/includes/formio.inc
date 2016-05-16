@@ -32,9 +32,9 @@ function formio_flatten_components($components, $includeAll = FALSE) {
   $flattened = array();
 
   foreach($components as $component) {
-    $hasColumns = isset($component['columns']);
-    $hasRows = isset($component['rows']);
-    $hasComps = isset($component['components']);
+    $hasColumns = isset($component['columns']) && is_array($component['columns']);
+    $hasRows = isset($component['rows']) && is_array($component['rows']);
+    $hasComps = isset($component['components']) && is_array($component['components']);
     $isTree = isset($component['tree']) && $component['tree'];
     $noRecurse = FALSE;
     if ($includeAll || $isTree || (!$hasColumns && !$hasRows && !$hasComps)) {

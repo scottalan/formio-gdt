@@ -58,16 +58,6 @@ function formio_schema_1() {
         'length' => '24',
         'description' => 'The _id of the Formio form.',
       ),
-      'form_name' => array(
-        'type' => 'varchar',
-        'length' => '255',
-        'description' => 'Formio form name.',
-      ),
-      'form_title' => array(
-        'type' => 'varchar',
-        'length' => '255',
-        'description' => 'Formio form title.',
-      ),
       'path' => array(
         'type' => 'varchar',
         'length' => '255',

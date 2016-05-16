@@ -202,20 +202,20 @@ function formio_form_edit_form_submit(&$form, &$form_state) {
   }
   // Get form and fill in additional form details.
   $formio_form = formio_get_form($form_state['item']->id);
-  $form_state['item']->form_name = $formio_form['name'];
-  $form_state['item']->form_title = $formio_form['title'];
+  $form_state['item']->name = $formio_form['name'];
+  $form_state['item']->title = $formio_form['title'];
   $form_state['item']->path = $formio_form['path'];
   $form_state['item']->type = $formio_form['type'];
   $form_state['item']->components = $formio_form['components'];
   $form_state['item']->created = (new DateTime($formio_form['created']))->getTimestamp();
   $form_state['item']->changed = (new DateTime($formio_form['modified']))->getTimestamp();
 
-  $components = formio_flatten_components($formio_form['components']);
-  foreach($components as $component) {
-    formio_add_field($formio_form['name'], $component);
-  }
-
-  formio_clear_form_cache($formio_form['name']);
+//  $components = formio_flatten_components($formio_form['components']);
+//  foreach($components as $component) {
+//    formio_add_field($form_state['item']->name, $component);
+//  }
+//
+  formio_clear_form_cache($form_state['item']->name);
 }
 
 /**
@@ -235,7 +235,7 @@ function formio_form_edit_form_submit(&$form, &$form_state) {
 function formio_add_field($bundle, $component) {
   $entity = 'formio';
   // Convert from camelCase to underscore_notation and prefix with formio_.
-  $key = 'formio_' . strtolower(preg_replace('/([a-z])([A-Z])/', '$1_$2', $component['key']));
+  $key = formio_formio_to_drupal($component['key']);
   $type = $component['type'];
   $label = $component['label'];
 
@@ -262,7 +262,7 @@ function formio_add_field($bundle, $component) {
           'bundle' => $bundle,
           'label' => $label,
           'widget' => array('type' => 'text'),
-          'settings' => array('display_summary' => TRUE),
+          'settings' => array(),
           'display' => array(
             'default' => array(
               'label' => 'hidden',
@@ -270,7 +270,38 @@ function formio_add_field($bundle, $component) {
             ),
             'teaser' => array(
               'label' => 'hidden',
-              'type' => 'text_summary_or_trimmed',
+              'type' => 'text_default',
+            ),
+          ),
+        );
+        $instance = field_create_instance($instance);
+      }
+      break;
+    case 'textarea':
+      if (empty($field)) {
+        $field = array(
+          'field_name' => $key,
+          'type' => 'text_long',
+          'entity_types' => array($entity),
+        );
+        $field = field_create_field($field);
+      }
+      if (empty($instance)) {
+        $instance = array(
+          'field_name' => $key,
+          'entity_type' => $entity,
+          'bundle' => $bundle,
+          'label' => $label,
+          'widget' => array('type' => 'text_textarea'),
+          'settings' => array('rows' => 5),
+          'display' => array(
+            'default' => array(
+              'label' => 'hidden',
+              'type' => 'text_default',
+            ),
+            'teaser' => array(
+              'label' => 'hidden',
+              'type' => 'text_default',
             ),
           ),
         );

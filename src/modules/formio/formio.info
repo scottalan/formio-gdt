@@ -8,4 +8,5 @@ dependencies[] = entity
 dependencies[] = restful
 files[] = includes/formio.inc
 
+registry_autoload[] = PSR-0
 registry_autoload[] = PSR-4

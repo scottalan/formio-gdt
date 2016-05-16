@@ -111,7 +111,7 @@ function formio_entity_info() {
     'formio' => array(
       'label' => t('Formio Submission'),
       'plural label' => t('Formio Submissions'),
-      'entity class' => 'EntityClass',
+      'entity class' => 'Entity',
       'controller class' => 'EntityAPIController',
       'base table' => 'formio',
       'fieldable' => TRUE,
@@ -389,7 +389,16 @@ function formio_resource_plugin_alter(&$plugins) {
       'resource' => $form->path,
       'label' => $form->title,
       'class' => 'Drupal\formio\Plugin\resource\Formio',
-      'provider' => 'formio'
+      'provider' => 'formio',
+      'formatter' => 'formio',
     );
   }
+}
+
+/**
+ * Convert formio field name to drupal field name.
+ */
+function formio_formio_to_drupal($name) {
+  return 'formio_' . strtolower(preg_replace('/([a-z])([A-Z])/', '$1_$2', $name));
+
 }
