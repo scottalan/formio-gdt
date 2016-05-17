@@ -17,8 +17,8 @@ $plugin = array(
     // 'admin/structure/formio/preset/add', etc.
     // @see ctools_export_ui_plugin_base_path().
     'menu item' => 'formio',
-    'menu title' => 'Form.io',
-    'menu description' => 'Form.io form management.',
+    'menu title' => 'Form.io Forms',
+    'menu description' => 'Manage imported forms and where to store them.',
     'items' => array(),
   ),
 
@@ -64,6 +64,8 @@ function formio_form_display_form($form, &$form_state) {
 
 function formio_form_edit_form(&$form, &$form_state) {
   drupal_add_library('formio', 'seamless');
+
+  unset($form['info']);
 
   // Add the form selection part of the form.
   $has_forms = formio_form_selection_form($form, $form_state);
@@ -129,6 +131,7 @@ function formio_form_selection_form(&$form, &$form_state) {
       '#default_value' => isset($form_state['item']->id) ? $form_state['item']->id : '',
       '#prefix' => '<div id="' . $id . '">',
       '#suffix' => '</div>',
+      '#disabled' => isset($form_state['item']->pid),
       '#ajax' => array(
         'callback' => 'formio_form_display_ajax',
         'wrapper' => 'formio-form-render',
@@ -210,11 +213,11 @@ function formio_form_edit_form_submit(&$form, &$form_state) {
   $form_state['item']->created = (new DateTime($formio_form['created']))->getTimestamp();
   $form_state['item']->changed = (new DateTime($formio_form['modified']))->getTimestamp();
 
-//  $components = formio_flatten_components($formio_form['components']);
-//  foreach($components as $component) {
-//    formio_add_field($form_state['item']->name, $component);
-//  }
-//
+  $components = formio_flatten_components($formio_form['components']);
+  foreach($components as $component) {
+    formio_add_field($form_state['item']->name, $component);
+  }
+
   formio_clear_form_cache($form_state['item']->name);
 }
 

@@ -190,7 +190,7 @@ function formio_preprocess_formio_form(&$vars) {
     $callback = '';
   }
   else {
-    $url = variable_get('restful_hook_menu_base_path', 'api') . '/' . $form['path'];
+    $url = variable_get('restful_hook_menu_base_path', 'api') . '/' . $form['name'];
     $callback = url($url, array('absolute' => TRUE));
   }
 
@@ -386,7 +386,7 @@ function formio_resource_plugin_alter(&$plugins) {
         ),
       ),
       'name' => $form->name . ':1.0',
-      'resource' => $form->path,
+      'resource' => $form->name,
       'label' => $form->title,
       'class' => 'Drupal\formio\Plugin\resource\Formio',
       'provider' => 'formio',

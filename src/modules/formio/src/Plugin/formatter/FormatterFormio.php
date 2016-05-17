@@ -212,6 +212,10 @@ class FormatterFormio extends Formatter implements FormatterInterface {
     foreach($decoded_json['data'] as $key => $value) {
       $decoded_json[formio_formio_to_drupal($key)] = $value;
     }
+
+    // Remove the original data.
+    unset($decoded_json['data']);
+
     return $decoded_json;
   }
 
