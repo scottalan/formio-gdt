@@ -400,5 +400,4 @@ function formio_resource_plugin_alter(&$plugins) {
  */
 function formio_formio_to_drupal($name) {
   return 'formio_' . strtolower(preg_replace('/([a-z])([A-Z])/', '$1_$2', $name));
-
 }

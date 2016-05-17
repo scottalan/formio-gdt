@@ -213,6 +213,14 @@ function formio_form_edit_form_submit(&$form, &$form_state) {
   $form_state['item']->created = (new DateTime($formio_form['created']))->getTimestamp();
   $form_state['item']->changed = (new DateTime($formio_form['modified']))->getTimestamp();
 
+  // Add data field to store raw json
+  $data = array(
+    'label' => 'Data',
+    'key' => 'data',
+    'type' => 'serial'
+  );
+  formio_add_field($form_state['item']->name, $data);
+
   $components = formio_flatten_components($formio_form['components']);
   foreach($components as $component) {
     formio_add_field($form_state['item']->name, $component);
@@ -281,6 +289,7 @@ function formio_add_field($bundle, $component) {
       }
       break;
     case 'textarea':
+    case 'serial':
       if (empty($field)) {
         $field = array(
           'field_name' => $key,
