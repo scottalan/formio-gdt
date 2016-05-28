@@ -230,15 +230,12 @@ function formio_form_edit_form_submit(&$form, &$form_state) {
 }
 
 /**
- * Add a field to the form
- */
-/**
- * Adds default body field to a node type.
+ * Add a field to the form.
  *
- * @param $type
- *   A node type object.
- * @param $label
- *   The label for the body instance.
+ * @param $bundle
+ *   The entity bundle.
+ * @param $component
+ *   The field component.
  *
  * @return
  *   Body field instance.
@@ -253,73 +250,55 @@ function formio_add_field($bundle, $component) {
   $field = field_info_field($key);
   $instance = field_info_instance($entity, $key, $bundle);
 
+  $field_type = '';
+  $widget_type = '';
+  $settings = array();
+
   switch ($type) {
     case 'textfield':
     case 'phonenumber':
     case 'email':
     case 'password':
-      if (empty($field)) {
-        $field = array(
-          'field_name' => $key,
-          'type' => 'text',
-          'entity_types' => array($entity),
-        );
-        $field = field_create_field($field);
-      }
-      if (empty($instance)) {
-        $instance = array(
-          'field_name' => $key,
-          'entity_type' => $entity,
-          'bundle' => $bundle,
-          'label' => $label,
-          'widget' => array('type' => 'text'),
-          'settings' => array(),
-          'display' => array(
-            'default' => array(
-              'label' => 'hidden',
-              'type' => 'text_default',
-            ),
-            'teaser' => array(
-              'label' => 'hidden',
-              'type' => 'text_default',
-            ),
-          ),
-        );
-        $instance = field_create_instance($instance);
-      }
+      $field_type = $widget_type = 'text';
+      $settings = array();
       break;
     case 'textarea':
     case 'serial':
-      if (empty($field)) {
-        $field = array(
-          'field_name' => $key,
-          'type' => 'text_long',
-          'entity_types' => array($entity),
-        );
-        $field = field_create_field($field);
-      }
-      if (empty($instance)) {
-        $instance = array(
-          'field_name' => $key,
-          'entity_type' => $entity,
-          'bundle' => $bundle,
-          'label' => $label,
-          'widget' => array('type' => 'text_textarea'),
-          'settings' => array('rows' => 5),
-          'display' => array(
-            'default' => array(
-              'label' => 'hidden',
-              'type' => 'text_default',
-            ),
-            'teaser' => array(
-              'label' => 'hidden',
-              'type' => 'text_default',
-            ),
-          ),
-        );
-        $instance = field_create_instance($instance);
-      }
+      $field_type = 'text_long';
+      $widget_type = 'text_textarea';
+      $settings = array('rows' => 5);
       break;
+  }
+
+  // Create the field and instance.
+  if (empty($field)) {
+    $field = array(
+      'field_name' => $key,
+      'type' => $field_type,
+      'entity_types' => array($entity),
+    );
+    field_create_field($field);
+  }
+  if (empty($instance)) {
+    $instance = array(
+      'field_name' => $key,
+      'entity_type' => $entity,
+      'bundle' => $bundle,
+      'label' => $label,
+      'widget' => array('type' => $widget_type),
+      'settings' => $settings,
+      'display' => array(
+        'default' => array(
+          'label' => 'hidden',
+          'type' => 'text_default',
+        ),
+        'teaser' => array(
+          'label' => 'hidden',
+          'type' => 'text_default',
+        ),
+      ),
+    );
+    $instance = field_create_instance($instance);
   }
   return $instance;
 }
