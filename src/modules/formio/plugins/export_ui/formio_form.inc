@@ -310,6 +310,12 @@ function formio_add_field($bundle, $component) {
   $type = $component['type'];
   $label = $component['label'];
 
+  // Ignore buttons.
+  if ($type == 'button') {
+    return;
+  }
+
+  // See if we have defined a field or field_instance for this component.
   $field = field_info_field($key);
   $instance = field_info_instance($entity, $key, $bundle);
 
