@@ -59,11 +59,14 @@ function formio_formio_form_content_type_render($subtype, $conf, $args, $context
     // @todo: What now? If the {formio_form} is updated it breaks the display.
     list($pid, $name) = explode(':', $key);
 
+    // @todo: Update {panels_pane} references if an export is updated.
     $export = formio_get_export($name);
 
     $form = array(
       'pid' => $export->pid,
       'id' => $export->id,
+      'title' => $export->title,
+      'form_name' => $export->form_name,
       'name' => $export->name,
       'action' => $export->action,
       'path' => $export->path,
@@ -106,7 +109,7 @@ function formio_formio_form_content_type_render($subtype, $conf, $args, $context
  */
 function formio_form_content_type_add_headers() {
   return array(
-//    array('x-jwt-token', formio_form_content_type_api_key()),
+    array('x-token', formio_form_content_type_api_key()),
     array('Accept', 'application/json'),
     array('Access-Control-Request-Method', 'POST, GET, OPTIONS'),
   );
