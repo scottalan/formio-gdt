@@ -372,28 +372,30 @@ function formio_load_drupal_forms() {
 /**
  * Implements hook_resource_plugin_alter()
  */
-function formio_resource_plugin_alter(&$plugins) {
+function formio_resource_plugin_alter(&$definitions) {
   $forms = formio_load_drupal_forms();
 
   foreach($forms as $key => $form) {
-    $plugins[$form->name . ':1.0'] = array(
-      'majorVersion' => 1,
-      'minorVersion' => 0,
+    $drupal_name = $form->name;
+    $formio_name = $form->form_name;
+    $definitions[$drupal_name . ':1.0'] = array(
+      'name' => $drupal_name . ':1.0',
+      'resource' => $drupal_name,
+      'label' => $form->title,
+      'majorVersion' => FORMIO_API_MAJOR,
+      'minorVersion' => FORMIO_API_MINOR,
       'description' => 'Restful endpoints for ' . $form->title,
-      'authenticationTypes' => FALSE,
-      'authenticationOptional' => TRUE,
+      'authenticationTypes' => TRUE,
+      'authenticationOptional' => FALSE,
       'discoverable' => TRUE,
       'hookMenu' => TRUE,
       'dataProvider' => array(
         'entityType' => 'formio',
         'bundles' => array(
-          $form->name
+          $drupal_name,
         ),
       ),
-      'name' => $form->name . ':1.0',
-      'resource' => $form->name,
-      'label' => $form->title,
-      'class' => 'Drupal\formio\Plugin\resource\Formio',
+      'class' => formio_api_class(),
       'provider' => 'formio',
       'formatter' => 'formio',
     );
