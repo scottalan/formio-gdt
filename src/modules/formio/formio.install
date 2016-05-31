@@ -1,4 +1,16 @@
 <?php
+/**
+ * @file
+ * Defines the preset export and submission schemas for forms.
+ */
+
+/**
+ * Implements hook_install()
+ */
+function formio_install() {
+  // Set the restful default formatter.
+  variable_set('restful_default_output_formatter', 'formio');
+}
 
 /**
  * Implements hook_schema().
@@ -45,27 +57,37 @@ function formio_schema_1() {
       ),
       'name' => array(
         'type' => 'varchar',
-        'length' => '255',
-        'description' => 'Name for the form.',
+        'length' => 255,
+        'description' => 'The name given to the form in Drupal.',
       ),
       'title' => array(
         'type' => 'varchar',
-        'length' => '255',
-        'description' => 'Title for the form.',
+        'length' => 255,
+        'description' => 'The title of the form in Drupal.',
       ),
       'id' => array(
         'type' => 'varchar',
-        'length' => '24',
-        'description' => 'The _id of the Formio form.',
+        'length' => 24,
+        'description' => 'The unique _id of the Formio form.',
+      ),
+      'form_name' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'description' => 'The real name of the form on Formio.',
+      ),
+      'form_title' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'description' => 'The title of the form on Formio.',
       ),
       'path' => array(
         'type' => 'varchar',
-        'length' => '255',
+        'length' => 255,
         'description' => 'The form path on formio.',
       ),
       'type' => array(
         'type' => 'varchar',
-        'length' => '255',
+        'length' => 255,
         'description' => 'Type of form. Typically form or resource.',
       ),
       'created' => array(
@@ -89,7 +111,7 @@ function formio_schema_1() {
       ),
       'action' => array(
         'type' => 'varchar',
-        'length' => '64',
+        'length' => 255,
         'description' => 'The action that will performed when the form is submitted.',
       ),
       'action_settings' => array(
@@ -116,15 +138,17 @@ function formio_schema_1() {
         'description' => 'Submission ID field for the table.',
         'no export' => TRUE, // Do not export database-only keys.
       ),
-      'id' => array(
+      'name' => array(
         'type' => 'varchar',
-        'length' => '24',
-        'description' => 'The _id of the Formio submission.',
+        'length' => 64,
+        'description' => 'The {formio_form}.form_name of the form.',
       ),
-      'form' => array(
+      'type' => array(
         'type' => 'varchar',
-        'length' => '255',
-        'description' => 'The form for this submission.',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'The {formio_form}.name for this submission.',
       ),
       'owner' => array(
         'description' => 'The {users}.uid that owns this node; initially, this is the user that created it.',
