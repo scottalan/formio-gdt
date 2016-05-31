@@ -72,7 +72,7 @@ function formio_form_edit_form(&$form, &$form_state) {
   unset($form['info']);
 
   // Add the form selection part of the form.
-  $has_forms = formio_form_selection_form($form, $form_state);
+  $has_forms = formio_form_selection_form($form, $form_state, $form_state['item']->name, $form_state['item']->title);
 
   if ($has_forms) {
 
@@ -123,7 +123,7 @@ function formio_form_edit_form(&$form, &$form_state) {
  */
 function formio_form_selection_form(&$form, &$form_state, $name = NULL, $title = NULL) {
   // Need to include this file.
-  ctools_form_include($orm_state, 'formio_form', 'formio', 'plugins/export_ui');
+  ctools_form_include($form_state, 'formio_form', 'formio', 'plugins/export_ui');
 
   $formio_forms = formio_get_formio_forms();
 
@@ -137,11 +137,46 @@ function formio_form_selection_form(&$form, &$form_state, $name = NULL, $title =
 
     $form += formio_form_display_form($form, $form_state);
 
+    $form['title'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Administrative title'),
+      '#description' => t('The name of this form.'),
+      '#default_value' => isset($title) ? $title : '',
+      '#size' => 40,
+    );
+
+    $form['name'] = array(
+      '#type' => 'machine_name',
+      '#title' => t('Machine name'),
+      '#machine_name' => array(
+        'exists' => 'formio_form_name_exists',
+        'source' => array('title'),
+      ),
+      '#description' => t('The machine readable name of this form. It must be unique, and it must contain only alphanumeric characters and underscores. Once created, you will not be able to change this value!'),
+      '#default_value' => isset($name) ? $name : '',
+    );
+
+    if ($form_state['op'] === 'edit') {
+      $form['name']['#disabled'] = TRUE;
+      $form['name']['#value'] = $name;
+    }
+
     $html = '<button type="button" id="reload-preset" class="btn btn-info btn-sm">reload</button>';
     $form[FORMIO_PRESET] = array(
       '#type' => 'fieldset',
       '#title' => t('Preset'),
     );
+
+    $disabled = FALSE;
+    // Check for component fields that may already contain data.
+    foreach ($form_state['item']->components as $component) {
+      // If any of the fields contain data disable the selector so the field
+      // can't be changed.
+      if (field_has_data('formio_' . $component['key'])) {
+        $disabled = TRUE;
+        break;
+      }
+    }
     $id = drupal_html_id('formio-preset-form');
     $form[FORMIO_PRESET]['id'] = array(
       '#title' => t('Form.io Form'),
@@ -150,7 +185,7 @@ function formio_form_selection_form(&$form, &$form_state, $name = NULL, $title =
       '#default_value' => isset($form_state['item']->id) ? $form_state['item']->id : '',
       '#prefix' => '<div id="' . $id . '">',
       '#suffix' => '</div>',
-      '#disabled' => isset($form_state['item']->pid),
+      '#disabled' => $disabled,
       '#ajax' => array(
         'callback' => 'formio_form_display_ajax',
         'wrapper' => 'formio-form-render',
@@ -226,8 +261,8 @@ function formio_form_edit_form_submit(&$form, &$form_state) {
   }
   // Get form and fill in additional form details.
   $formio_form = formio_get_form($form_state['item']->id);
-  $form_state['item']->name = $formio_form['name'];
-  $form_state['item']->title = $formio_form['title'];
+  $form_state['item']->form_name = $formio_form['name'];
+  $form_state['item']->form_title = $formio_form['title'];
   $form_state['item']->path = $formio_form['path'];
   $form_state['item']->type = $formio_form['type'];
   $form_state['item']->components = $formio_form['components'];
