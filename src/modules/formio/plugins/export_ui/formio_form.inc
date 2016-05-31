@@ -407,7 +407,26 @@ function formio_add_field($bundle, $component) {
 }
 
 /**
- * Get a specific form
+ * Checks to see if a form with the same 'machine_name' already exists.
+ *
+ * @see menu_edit_menu()
+ * @see form_validate_machine_nxame()
+ */
+function formio_form_name_exists($name, $element, &$form_state) {
+  $name_exists = db_query_range('SELECT 1 FROM {formio_form} WHERE name = :name', 0, 1, array(':name' => $name))->fetchField();
+  return $name_exists;
+}
+
+/**
+ * Get a specific form.
+ *
+ * @param string $id
+ *   The unique string that represents a Formio form.
+ * @param bool $reset
+ *   Choose not to use static cache.
+ *
+ * @return object
+ *   The form object.
  */
 function formio_get_form($id, $reset = FALSE) {
   static $drupal_static_fast;
