@@ -36,7 +36,8 @@ $plugin = array(
 
   'strings' => array(
     'message' => array(
-      'formio' => t('This is a message from Form.io!'),
+      // Shown when there are no exports.
+      'no items' => t('!message', array('!message' => l('Add a new form!', 'admin/structure/formio/add'))),
     ),
   ),
 );
