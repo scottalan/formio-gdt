@@ -13,8 +13,8 @@ $plugin = array(
   // Define the menu item.
   'menu' => array(
     // The 'menu prefix' and 'menu item' create the base path. The default path
-    // is 'admin/structure/'. This will give us 'admin/structure/formio/preset',
-    // 'admin/structure/formio/preset/add', etc.
+    // is 'admin/structure/'. This will give us 'admin/structure/formio',
+    // 'admin/structure/formio/add', etc.
     // @see ctools_export_ui_plugin_base_path().
     'menu item' => 'formio',
     'menu title' => 'Form.io Forms',
@@ -62,6 +62,9 @@ function formio_form_display_form($form, &$form_state) {
   return $form;
 }
 
+/**
+ * Implements formio_form_edit_form().
+ */
 function formio_form_edit_form(&$form, &$form_state) {
   drupal_add_library('formio', 'seamless');
 
@@ -102,7 +105,22 @@ function formio_form_edit_form(&$form, &$form_state) {
   }
 }
 
-function formio_form_selection_form(&$form, &$form_state) {
+/**
+ * Provides a selector to choose a Formio form.
+ *
+ * @param array $form
+ *   The current form.
+ * @param array $form_state
+ *   The current state of the form.
+ * @param string $name
+ *   The machine_name of an existing form.
+ * @param string $title
+ *   The title of an existing form.
+ *
+ * @return bool
+ *   Returns FALSE if there are no forms.
+ */
+function formio_form_selection_form(&$form, &$form_state, $name = NULL, $title = NULL) {
   // Need to include this file.
   ctools_form_include($orm_state, 'formio_form', 'formio', 'plugins/export_ui');
 
@@ -186,14 +204,16 @@ function formio_form_display_ajax($form, $form_state) {
 }
 
 /**
- * Validate for formio_form_edit_form.
+ * Implements formio_form_edit_form().
+ *
+ * @todo: Prevent duplicate forms
  */
 function formio_form_edit_form_validate(&$form, &$form_state) {
-  // TODO: Prevent duplicate forms.
+
 }
 
 /**
- * Submit for formio_form_edit_form.
+ * Implements formio_form_edit_form().
  */
 function formio_form_edit_form_submit(&$form, &$form_state) {
   // Transfer data from the form to the $item based upon schema values.
@@ -213,37 +233,44 @@ function formio_form_edit_form_submit(&$form, &$form_state) {
   $form_state['item']->created = (new DateTime($formio_form['created']))->getTimestamp();
   $form_state['item']->changed = (new DateTime($formio_form['modified']))->getTimestamp();
 
-  // Add data field to store raw json
+  // Build the data field component.
   $data = array(
     'label' => 'Data',
     'key' => 'data',
     'type' => 'serial'
   );
+  // Add a data field to store raw json.
   formio_add_field($form_state['item']->name, $data);
 
+  // Retrieve all components from the form.
   $components = formio_flatten_components($formio_form['components']);
   foreach($components as $component) {
+    // Add a new field for each of the components.
     formio_add_field($form_state['item']->name, $component);
   }
 
+  // Clear ctools object-cache.
   formio_clear_form_cache($form_state['item']->name);
 }
 
 /**
- * Add a field to the form.
+ * Create a new field and field instance for each form component.
  *
- * @param $bundle
+ * @param string $bundle
  *   The entity bundle.
- * @param $component
- *   The field component.
+ * @param array $component
+ *   The Formio form component.
  *
- * @return
- *   Body field instance.
+ * @return array
+ *   A field instance.
  */
 function formio_add_field($bundle, $component) {
+  // The name of our entity.
   $entity = 'formio';
+
   // Convert from camelCase to underscore_notation and prefix with formio_.
   $key = formio_formio_to_drupal($component['key']);
+  // The type of component.
   $type = $component['type'];
   $label = $component['label'];
 
