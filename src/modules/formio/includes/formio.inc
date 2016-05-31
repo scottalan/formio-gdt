@@ -130,9 +130,6 @@ function formio_get_exports(array $names) {
  *
  * @return array
  *   A single preset.
- *
- *
- * @todo: What now? If the {formio_form} is updated it breaks the display.
  */
 function formio_get_export($export) {
   if (is_numeric($export)) {
