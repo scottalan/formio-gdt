@@ -213,8 +213,12 @@ class FormatterFormio extends Formatter implements FormatterInterface {
       $decoded_json[formio_formio_to_drupal($key)] = $value;
     }
 
-    // Serialize original data for storage.
-    $decoded_json['data'] = serialize($decoded_json['data']);
+    // Serialize original data for storage. Make sure we use the same naming
+    // convention as the other fields.
+    $decoded_json['formio_data'] = serialize($decoded_json['data']);
+
+    // Remove the original 'data' object.
+    unset($decoded_json['data']);
 
     return $decoded_json;
   }
