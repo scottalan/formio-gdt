@@ -10,6 +10,8 @@ include_once 'formio.block.inc';
 define('FORMIO_PRESET','formio_form');
 define('FORMIO_BLOCK','formio_block');
 define('BOOTSWATCH_API', '3');
+define('FORMIO_API_MAJOR', 1);
+define('FORMIO_API_MINOR', 0);
 
 /**
  * Implements hook_ctools_plugin_api().
@@ -190,7 +192,7 @@ function formio_preprocess_formio_form(&$vars) {
     $callback = '';
   }
   else {
-    $url = variable_get('restful_hook_menu_base_path', 'api') . '/' . $form['name'];
+    $url = variable_get('restful_hook_menu_base_path', 'api') . '/v' . FORMIO_API_MAJOR . '.' . FORMIO_API_MINOR . '/' . $form['name'];
     $callback = url($url, array('absolute' => TRUE));
   }
 
@@ -400,4 +402,11 @@ function formio_resource_plugin_alter(&$plugins) {
  */
 function formio_formio_to_drupal($name) {
   return 'formio_' . strtolower(preg_replace('/([a-z])([A-Z])/', '$1_$2', $name));
+}
+
+/**
+ * Helper to return the correct class based on the api.
+ */
+function formio_api_class() {
+  return 'Drupal\formio\Plugin\resource\formio\forms\Forms__' . FORMIO_API_MAJOR . '_' . FORMIO_API_MINOR;
 }
