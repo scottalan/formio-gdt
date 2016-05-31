@@ -325,17 +325,38 @@ function formio_add_field($bundle, $component) {
 
   switch ($type) {
     case 'textfield':
-    case 'phonenumber':
+    case 'phoneNumber':
     case 'email':
     case 'password':
-      $field_type = $widget_type = 'text';
+    case 'datetime':
+    case 'select':
+    case 'selectboxes':
+      $field_type = 'text';
+      $widget_type = 'text_textfield';
       $settings = array();
       break;
     case 'textarea':
     case 'serial':
+    case 'address':
+    case 'file':
+    case 'survey':
+    case 'datagrid':
       $field_type = 'text_long';
       $widget_type = 'text_textarea';
       $settings = array('rows' => 5);
+      break;
+    case 'number':
+    case 'currency':
+    case 'checkbox':
+    case 'radio':
+      $field_type = 'number_decimal';
+      $widget_type = 'number';
+      $settings = array (
+        'min' => !empty($component['validate']['min']) ? $component['validate']['min'] : '',
+        'max' => !empty($component['validate']['max']) ? $component['validate']['max'] : '',
+        'prefix' => !empty($component['prefix']) ? $component['prefix'] : '',
+        'suffix' => !empty($component['suffix']) ? $component['suffix'] : '',
+      );
       break;
   }
 
@@ -348,11 +369,13 @@ function formio_add_field($bundle, $component) {
     );
     field_create_field($field);
   }
+  else {
+    if (!field_has_data($field)) {
+      field_update_field($field);
+    }
+  }
   if (empty($instance)) {
     $instance = array(
-      'field_name' => $key,
-      'entity_type' => $entity,
-      'bundle' => $bundle,
       'label' => $label,
       'widget' => array('type' => $widget_type),
       'settings' => $settings,
@@ -366,8 +389,19 @@ function formio_add_field($bundle, $component) {
           'type' => 'text_default',
         ),
       ),
+      'required' => (isset($component['validate']) && $component['validate']['required']) ? TRUE : FALSE,
+      'default_value' => (isset($component['defaultValue'])) ? $component['defaultValue'] : NULL,
+      'field_name' => $key,
+      'entity_type' => $entity,
+      'bundle' => $bundle,
     );
     $instance = field_create_instance($instance);
+  }
+  else {
+    // @todo: Can we update an instance?.
+    if (!field_has_data($field)) {
+      field_update_instance($instance);
+    }
   }
   return $instance;
 }
