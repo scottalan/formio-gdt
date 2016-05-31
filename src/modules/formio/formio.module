@@ -113,6 +113,7 @@ function formio_entity_info() {
     'formio' => array(
       'label' => t('Formio Submission'),
       'plural label' => t('Formio Submissions'),
+      'label callback' => 'formio_entity_label_callback',
       'entity class' => 'Entity',
       'controller class' => 'EntityAPIController',
       'base table' => 'formio',
@@ -120,13 +121,14 @@ function formio_entity_info() {
 //      'exportable' => TRUE,
       'entity keys' => array(
         'id' => 'sid',
-        'bundle' => 'form'
+        'bundle' => 'form',
+        'label' => 'title',
       ),
       'bundle keys' => array(
-        'bundle' => 'form'
+        'bundle' => 'form',
       ),
       'bundles' => array(),
-      'module' => 'formio'
+      'module' => 'formio',
     ),
     FORMIO_PRESET => array(
       'label' => t('Formio Form'),
@@ -157,6 +159,18 @@ function formio_entity_info() {
   }
 
   return $return;
+}
+
+/**
+ * The label callback for a formio entity.
+ *
+ * @param object $entity
+ * @param string $entity_type
+ * @return string
+ */
+function formio_entity_label_callback($entity, $entity_type) {
+  // @todo: Really implement this.
+  return $entity->entityInfo['bundles']['form']['label'];
 }
 
 /**
