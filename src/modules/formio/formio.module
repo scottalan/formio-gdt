@@ -235,17 +235,6 @@ function formio_preprocess_formio_form(&$vars) {
  * @param array $conf
  */
 function formio_display_config_form(&$form, $conf) {
-  $options = array();
-
-  $delta = is_array($conf) ? FALSE : (is_string($conf) ? TRUE : '');
-
-  // Get all form exports.
-  $exports = formio_get_all_exports();
-
-  // Build the options based on exports.
-  foreach ($exports as $export) {
-    $options[$export->pid . ':' . $export->name] = $export->title;
-  }
 
   // Build the form.
   $form['formio'] = array(
@@ -253,7 +242,10 @@ function formio_display_config_form(&$form, $conf) {
     '#type' => 'fieldset',
   );
 
-  if (empty($options)) {
+  // Get all form exports.
+  $exports = formio_get_all_exports();
+
+  if (empty($exports)) {
     $form['formio']['formio_export'] = array(
       '#prefix' => '<div class="no-presets-found">',
       '#markup' => t('You need to add a preset first. !path', array('!path' => l(t('Here'), 'admin/structure/formio'))),
@@ -261,43 +253,56 @@ function formio_display_config_form(&$form, $conf) {
     );
     $form['buttons']['return']['#access'] = FALSE;
   }
-  else {
+
+  // This is coming from a preset request.
+  if (is_array($conf)) {
+    $options = array();
+    // Build the options based on exports.
+    foreach ($exports as $export) {
+      $options[$export->pid . ':' . $export->name] = $export->title;
+    }
+
     $form['formio']['formio_export'] = array(
       '#type' => 'select',
       '#title' => t('Form Export'),
       '#options' => $options,
-      '#disabled' => TRUE,
-      '#default_value' => empty($delta) ? $conf['formio_export'] : variable_get('formio_export:' . $delta, ''),
+      '#default_value' => isset($conf['formio_export']) ? $conf['formio_export'] : variable_get('formio_export:' . $conf, ''),
     );
 
-    $form['formio']['formio_use_bootswatch'] = array(
-      '#type' => 'checkbox',
-      '#title' => t('Use bootswatch'),
-      '#default_value' => empty($delta) ? $conf['formio_use_bootswatch'] : variable_get('formio_use_bootswatch:' . $delta, ''),
-    );
+  }
+  // This is a block making a request.
+  else {
+    list(, $value) = explode(':', $conf);
+    $form['formio']['formio_export'] = array('#type' => 'hidden', '#value' => $value);
+  }
 
-    $form['formio']['formio_bootswatch_theme'] = array(
-      '#title' => t('Bootswatch Theme'),
-      '#default_value' => empty($delta) ? $conf['formio_bootswatch_theme'] : variable_get('formio_bootswatch_theme:' . $delta, ''),
-      '#states' => array(
-        'invisible' => array(
-          ':input[name="formio_use_bootswatch"]' => array('checked' => FALSE),
-        ),
+  $form['formio']['formio_use_bootswatch'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Use bootswatch'),
+    '#default_value' => is_array($conf) ? $conf['formio_use_bootswatch'] : variable_get($conf . ':use_bootswatch', ''),
+  );
+
+  $form['formio']['formio_bootswatch_theme'] = array(
+    '#title' => t('Bootswatch Theme'),
+    '#default_value' => is_array($conf) ? $conf['formio_bootswatch_theme'] : variable_get($conf . ':bootswatch_theme', ''),
+    '#states' => array(
+      'invisible' => array(
+        ':input[name="formio_use_bootswatch"]' => array('checked' => FALSE),
       ),
-    );
-    // Get possible Bootswatch themes from the Bootswatch api.
-    $swatches = formio_bootswatch();
-    // If we have trouble communicating with the api then just present the user
-    // with a textfield so they can enter the name of the theme.
-    if ($swatches == FALSE) {
-      $form['formio']['formio_bootswatch_theme']['#type'] = 'textfield';
-    }
-    // If we got a successful response from Bootswatch then populate a select
-    // list with the options.
-    else {
-      $form['formio']['formio_bootswatch_theme']['#type'] = 'select';
-      $form['formio']['formio_bootswatch_theme']['#options'] = $swatches;
-    }
+    ),
+  );
+  // Get possible Bootswatch themes from the Bootswatch api.
+  $swatches = formio_bootswatch();
+  // If we have trouble communicating with the api then just present the user
+  // with a textfield so they can enter the name of the theme.
+  if ($swatches == FALSE) {
+    $form['formio']['formio_bootswatch_theme']['#type'] = 'textfield';
+  }
+  // If we got a successful response from Bootswatch then populate a select
+  // list with the options.
+  else {
+    $form['formio']['formio_bootswatch_theme']['#type'] = 'select';
+    $form['formio']['formio_bootswatch_theme']['#options'] = $swatches;
   }
 }
 
