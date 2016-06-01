@@ -266,6 +266,7 @@ function formio_display_config_form(&$form, $conf) {
       '#type' => 'select',
       '#title' => t('Form Export'),
       '#options' => $options,
+      '#disabled' => TRUE,
       '#default_value' => empty($delta) ? $conf['formio_export'] : variable_get('formio_export:' . $delta, ''),
     );
 
@@ -428,4 +429,8 @@ function formio_formio_to_drupal($name) {
  */
 function formio_api_class() {
   return 'Drupal\formio\Plugin\resource\formio\forms\Forms__' . FORMIO_API_MAJOR . '_' . FORMIO_API_MINOR;
+}
+
+function formio_apikey() {
+  return Formio::apiKey();
 }

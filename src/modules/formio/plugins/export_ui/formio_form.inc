@@ -34,14 +34,17 @@ $plugin = array(
     'submit' => 'formio_form_edit_form_submit'
   ),
 
+  'add_form' => t('!message', array('!message' => l('Add a new form!', 'admin/structure/formio/add'))),
+  'need_key' => t('Looks like you need an API Key. Enter one !here or visit !formio to create one now.', array('!here' => l('Here', 'admin/config/formio/settings'), '!formio' => l('Form.io', 'https://form.io'))),
+
   'strings' => array(
     'message' => array(
-      // Shown when there are no exports.
-      'no items' => t('!message', array('!message' => l('Add a new form!', 'admin/structure/formio/add'))),
+
     ),
   ),
 );
 
+$plugin['strings']['message']['no items'] = (!empty(formio_apikey())) ? $plugin['add_form'] : $plugin['need_key'];
 
 /**
  * Renders the form when creating a preset.
@@ -168,15 +171,23 @@ function formio_form_selection_form(&$form, &$form_state, $name = NULL, $title =
     );
 
     $disabled = FALSE;
-    // Check for component fields that may already contain data.
-    foreach ($form_state['item']->components as $component) {
-      // If any of the fields contain data disable the selector so the field
-      // can't be changed.
-      if (field_has_data('formio_' . $component['key'])) {
-        $disabled = TRUE;
-        break;
+    if (isset($form_state['item']->components)) {
+      // Check for component fields that may already contain data.
+      foreach ($form_state['item']->components as $component) {
+        if ($component['type'] === 'button') {
+          continue;
+        }
+        // If any of the fields contain data disable the selector so the field
+        // can't be changed.
+        $field_name = 'formio_' . $component['key'];
+        $info = field_info_field($field_name);
+        if ($info && field_has_data($field_name)) {
+          $disabled = TRUE;
+          break;
+        }
       }
     }
+
     $id = drupal_html_id('formio-preset-form');
     $form[FORMIO_PRESET]['id'] = array(
       '#title' => t('Form.io Form'),

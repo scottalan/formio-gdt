@@ -4,6 +4,8 @@
  * A ctools content type plugin that renders a form.io form.
  */
 
+use Symfony\Component\Config\Definition\Exception\Exception;
+
 $plugin = array(
   'title' => t('Form.io'),
   'description' => t('Renders an embedded form from Form.io'),
@@ -108,26 +110,15 @@ function formio_formio_form_content_type_render($subtype, $conf, $args, $context
  *   An array of headers.
  */
 function formio_form_content_type_add_headers() {
+  $apiKey = formio_apikey();
+  if (empty($apiKey)) {
+    throw new Exception('You must have an api key to continue.');
+  }
   return array(
-    array('x-token', formio_form_content_type_api_key()),
+    array('x-token', $apiKey),
     array('Accept', 'application/json'),
     array('Access-Control-Request-Method', 'POST, GET, OPTIONS'),
   );
-}
-
-/**
- * Gets the api key used in the header for authorization.
- *
- * @return string
- *   The x-token we need to add to the header for authentication.
- */
-function formio_form_content_type_api_key() {
-  // If this doesn't work go and get a new one. (May Expire).
-  $apikey = trim(variable_get('formio_project_api_key', FALSE));
-  if (!isset($apikey) || empty($apikey)) {
-    drupal_set_message(t('Looks like you need an API Key. Visit !formio and create one.', array('!formio', l('Form.io', 'https://form.io'))), 'warning');
-  }
-  return $apikey;
 }
 
 function formio_form_content_type_setting_data($id) {
