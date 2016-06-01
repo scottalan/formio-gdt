@@ -52,17 +52,23 @@ function formio_formio_form_content_type_render($subtype, $conf, $args, $context
     );
   }
   else {
-    // Values could come from a pane or a block.
-    // @todo: What now? If the {formio_form} is updated it breaks the display.
     $key = isset($conf['formio_export']) ? $conf['formio_export'] : $args['formio_export'];
     $use_theme = isset($conf['formio_use_bootswatch']) ? $conf['formio_use_bootswatch'] : $args['formio_use_bootswatch'];
     $theme = isset($conf['formio_bootswatch_theme']) ? $conf['formio_bootswatch_theme'] : $args['formio_bootswatch_theme'];
 
-    // @todo: What now? If the {formio_form} is updated it breaks the display.
+    // Get the export name.
     list($pid, $name) = explode(':', $key);
 
+    // @todo: fix this
+    if (!isset($name)) {
+      $name = $args['formio_export'];
+    }
     // @todo: Update {panels_pane} references if an export is updated.
     $export = formio_get_export($name);
+
+    if (!isset($export)) {
+      return array();
+    }
 
     $form = array(
       'pid' => $export->pid,
