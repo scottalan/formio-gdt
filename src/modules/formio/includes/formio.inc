@@ -105,7 +105,7 @@ function formio_get_formio_forms($reset = FALSE) {
  */
 function formio_get_all_exports($reset = FALSE) {
   ctools_include('export');
-  return ctools_export_crud_load_all(FORMIO_PRESET, $reset);
+  return ctools_export_crud_load_all('formio_form', $reset);
 }
 
 /**
@@ -119,7 +119,7 @@ function formio_get_all_exports($reset = FALSE) {
  */
 function formio_get_exports(array $names) {
   ctools_include('export');
-  return ctools_export_crud_load_multiple(FORMIO_PRESET, $names);
+  return ctools_export_crud_load_multiple('formio_form', $names);
 }
 
 /**
@@ -133,10 +133,10 @@ function formio_get_exports(array $names) {
  */
 function formio_get_export($export) {
   if (is_numeric($export)) {
-    return formio_get_export_by_pid($export);
+    return formio_get_export_by_fid($export);
   }
   ctools_include('export');
-  return ctools_export_crud_load(FORMIO_PRESET, $export);
+  return ctools_export_crud_load('formio_form', $export);
 }
 
 /**
@@ -144,7 +144,7 @@ function formio_get_export($export) {
  */
 function formio_clear_form_cache($name) {
   ctools_include('object-cache');
-  ctools_object_cache_clear(FORMIO_PRESET, $name);
+  ctools_object_cache_clear('formio_form', $name);
 }
 
 interface FormioFormControllerInterface {
