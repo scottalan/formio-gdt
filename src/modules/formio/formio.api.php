@@ -93,7 +93,7 @@ class MyAction extends FormioActions implements FormioActionsInterface {
     parent::hook_menu($items);
   }
 
-  function action($plugin) {
+  function action($plugin, $preset_name, $export) {
 
     // This is where you would add any logic needed to handle your custom
     // 'action' in Drupal.
@@ -105,18 +105,9 @@ class MyAction extends FormioActions implements FormioActionsInterface {
 }
 
 /**
- * To define a new block in your own module, you only need to implement the
- * this hook and prepend your custom block name with FORMIO_BLOCK.
- *
- * This will allow you to create multiple blocks if you need to with a minimal
- * amount of work. If you aren't using page manager to place the form on a page
- * you might want to use the same form on different pages but have a different
- * action on each of the forms.
+ * For every form that you define as an export, a block is automatically
+ * created.
  */
 function hook_block_info() {
-  return array(
-    FORMIO_BLOCK . '_myblock' => array(
-      'info' => t('My Form.io Form'),
-    ),
-  );
+
 }
