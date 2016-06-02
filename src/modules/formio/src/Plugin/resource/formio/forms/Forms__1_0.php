@@ -1,10 +1,6 @@
 <?php
-/**
- * @file
- */
 
 namespace Drupal\formio\Plugin\resource\formio\forms;
-
 
 use Drupal\restful\Plugin\resource\ResourceEntity;
 use Drupal\restful\Plugin\resource\ResourceInterface;
@@ -23,18 +19,16 @@ class Forms__1_0 extends ResourceEntity implements ResourceInterface{
    * {@inheritdoc}
    */
   protected function publicFields() {
-    $fields = parent::publicFields();
-
+    $public_fields = parent::publicFields();
     $instance_fields = field_info_instances($this->entityType, $this->bundles[0]);
-
     // Map all fields to public.
     foreach($instance_fields as $key => $instance_field) {
-      $fields[$key] = array(
+      $public_fields[$key] = array(
         'property' => $key
       );
     }
 
-    return $fields;
+    return $public_fields;
   }
 
   /**
