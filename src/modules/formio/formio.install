@@ -26,10 +26,10 @@ function formio_schema_1() {
   $schema['formio_form'] = array(
     'description' => t('Table storing form definitions.'),
     'export' => array(
-      'key' => 'name',
+      'key' => 'machine_name',
       'key name' => 'Unique Name',
-      'admin_title' => 'title',
-      'primary key' => 'pid',
+      'admin_title' => 'name',
+      'primary key' => 'fid',
       'identifier' => 'formio',
       'default hook' => 'formio_form',
       'export type string' => 'state',
@@ -42,13 +42,13 @@ function formio_schema_1() {
       // The callbacks will not be called unless they are implemented. These
       // are here in case we need to override any of these callbacks in the
       // future.
-      'create callback' => 'formio_export_create',
-      'load callback' => 'formio_export_load',
-      'save callback' => 'formio_export_save',
-      'delete callback' => 'formio_export_delete',
+      'create callback' => 'name_create',
+      'load callback' => 'name_load',
+      'save callback' => 'name_save',
+      'delete callback' => 'name_delete',
     ),
     'fields' => array(
-      'pid' => array(
+      'fid' => array(
         'type' => 'serial',
         'unsigned' => TRUE,
         'not null' => TRUE,
@@ -58,37 +58,49 @@ function formio_schema_1() {
       'name' => array(
         'type' => 'varchar',
         'length' => 255,
-        'description' => 'The name given to the form in Drupal.',
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'The name of the form in Drupal.',
+        'translatable' => TRUE,
       ),
-      'title' => array(
+      'machine_name' => array(
         'type' => 'varchar',
         'length' => 255,
-        'description' => 'The title of the form in Drupal.',
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'The machine-readable name of the form in Drupal.',
       ),
-      'id' => array(
+      'formio_id' => array(
         'type' => 'varchar',
         'length' => 24,
         'description' => 'The unique _id of the Formio form.',
       ),
-      'form_name' => array(
+      'formio_title' => array(
         'type' => 'varchar',
         'length' => 255,
-        'description' => 'The real name of the form on Formio.',
+        'description' => 'The form.io title of the form.',
       ),
-      'form_title' => array(
+      'formio_name' => array(
         'type' => 'varchar',
         'length' => 255,
-        'description' => 'The title of the form on Formio.',
+        'description' => 'The form.io name of the form.',
       ),
-      'path' => array(
+      'api_path' => array(
         'type' => 'varchar',
         'length' => 255,
-        'description' => 'The form path on formio.',
+        'description' => 'The form.io api path of the form.',
       ),
-      'type' => array(
+      'formio_type' => array(
         'type' => 'varchar',
         'length' => 255,
         'description' => 'Type of form. Typically form or resource.',
+      ),
+      'components' => array(
+        'type' => 'blob',
+        'not null' => FALSE,
+        'size' => 'big',
+        'serialize' => TRUE,
+        'description' => 'A serialized array of the form.io components on this form.',
       ),
       'created' => array(
         'description' => 'The Unix timestamp when the form was created.',
@@ -101,13 +113,6 @@ function formio_schema_1() {
         'type' => 'int',
         'not null' => TRUE,
         'default' => 0,
-      ),
-      'components' => array(
-        'type' => 'blob',
-        'not null' => FALSE,
-        'size' => 'big',
-        'serialize' => TRUE,
-        'description' => 'A serialized array of components on this form.',
       ),
       'action' => array(
         'type' => 'varchar',
@@ -122,9 +127,9 @@ function formio_schema_1() {
         'description' => 'A serialized array of action settings specific to this form.',
       ),
     ),
-    'primary key' => array('pid'),
+    'primary key' => array('fid'),
     'unique keys' => array(
-      'name' => array('name'),
+      'machine_name' => array('machine_name'),
     ),
   );
 
@@ -138,17 +143,24 @@ function formio_schema_1() {
         'description' => 'Submission ID field for the table.',
         'no export' => TRUE, // Do not export database-only keys.
       ),
-      'name' => array(
+      'form_id' => array(
         'type' => 'varchar',
-        'length' => 64,
-        'description' => 'The {formio_form}.form_name of the form.',
+        'length' => 24,
+        'description' => 'The form.io _id of the form submission.',
       ),
-      'type' => array(
+      'form' => array(
         'type' => 'varchar',
-        'length' => 64,
+        'length' => 255,
         'not null' => TRUE,
         'default' => '',
-        'description' => 'The {formio_form}.name for this submission.',
+        'description' => 'The machine-readable name of the form in Drupal.',
+      ),
+      'formio_name' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'The form.io name of the form for this submission.',
       ),
       'owner' => array(
         'description' => 'The {users}.uid that owns this node; initially, this is the user that created it.',
