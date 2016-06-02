@@ -65,24 +65,31 @@ function formio_formio_form_content_type_render($subtype, $conf, $args, $context
 
   }
   else {
-    // @todo: Update {panels_pane} references if an export is updated.
-    $export = formio_get_export($conf['machine_name']);
+    // We might be passing the export in as $conf. If we are then a components
+    // array will exist.
+    if (!isset($conf['components'])) {
+      // @todo: Update {panels_pane} references if an export is updated.
+      $export = formio_get_export($conf['machine_name']);
 
-    if (!isset($export)) {
-      return array();
+      if (!isset($export)) {
+        return array();
+      }
+
+      $form = array(
+        'fid' => $export->fid,
+        'formio_id' => $export->formio_id,
+        'name' => $export->name,
+        'formio_name' => $export->formio_name,
+        'machine_name' => $export->machine_name,
+        'api_path' => $export->api_path,
+        'action' => $export->action,
+        'theme' => isset($conf['theme']) ? $conf['theme'] : NULL,
+        'enable' => isset($conf['enable']) ? $conf['enable'] : 0,
+      );
     }
-
-    $form = array(
-      'fid' => $export->fid,
-      'form_id' => $export->formio_id,
-      'title' => $export->name,
-      'formio_name' => $export->formio_name,
-      'machine_name' => $export->machine_name,
-      'path' => $export->api_path,
-      'action' => $export->action,
-      'theme' => isset($conf['theme']) ? $conf['theme'] : NULL,
-      'enable' => isset($conf['enable']) ? $conf['enable'] : 0,
-    );
+    else {
+      $form = $conf;
+    }
   }
 
   // Build the form render array.
