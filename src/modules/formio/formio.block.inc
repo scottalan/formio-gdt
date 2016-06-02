@@ -13,6 +13,7 @@ function formio_block_info() {
   foreach ($exports as $key => $export) {
     $blocks['formio:' . $key] = array(
       'info' => t('!form_title', array('!form_title' => 'Formio: ' . $export->name)),
+      'cache' => DRUPAL_NO_CACHE,
     );
   }
 
@@ -35,7 +36,7 @@ function formio_block_configure($delta = '') {
  */
 function formio_block_save($delta = '', $edit = array()) {
   if (formio_block($delta)) {
-    variable_set($delta . ':name', $edit['name']);
+    variable_set($delta . ':machine_name', $edit['machine_name']);
     variable_set($delta . ':enable', $edit['enable']);
     variable_set($delta . ':theme', $edit['theme']);
   }
@@ -44,11 +45,13 @@ function formio_block_save($delta = '', $edit = array()) {
 /**
  * Implements hook_block_view().
  */
-function formio_block_view($delta = '', $content) {
+function formio_block_view($delta = '') {
   if (formio_block($delta)) {
-    $block = array();
-    $block['subject'] = '';
-    $block['content'] = $content->content;
+    list(, $name) = explode(':', $delta);
+    ctools_include('export');
+    $export = (array) ctools_export_crud_load('formio_form', $name);
+    $export['is_new'] = FALSE;
+    $block = formio_render($export);
 
     return $block;
   }

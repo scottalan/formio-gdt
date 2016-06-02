@@ -189,6 +189,23 @@ function formio_get_export_by_fid($fid) {
 }
 
 /**
+ * Implements hook_block_view_alter().
+ *
+ * In formio_block_view() we use the delta to load the exported form. Then it's
+ * passed to formio_render() to be fully rendered. We hook in here since we
+ * know that the '$array' will actually be a string. Since it is, block moves
+ * on and checks to see if $block->content is set. If it happens to be a string
+ * then it just sets the content as: array('#markup' => $block->content).
+ */
+function formio_block_view_alter(&$array, $block) {
+  if (strpos($block->delta, 'formio:') !== FALSE) {
+    if (is_string($array)) {
+      $block->content = $array;
+    }
+  }
+}
+
+/**
  * Render a formio form.
  *
  * @param array $conf
@@ -227,8 +244,8 @@ function formio_preprocess_formio_form(&$vars) {
   $vars['csrf_token'] = array_shift($token);
 
   // The form.io form _id and the name of the preset.
-  $vars['form_id'] = $form['form_id'];
-  $vars['name'] = isset($form['form_name']) ? $form['form_name'] : 'new-preset';
+  $vars['formio_id'] = $form['formio_id'];
+  $vars['formio_name'] = isset($form['formio_name']) ? $form['formio_name'] : 'new-preset';
 
   if ($form['action'] != 'drupal') {
     $callback = '';
@@ -249,7 +266,7 @@ function formio_preprocess_formio_form(&$vars) {
   $vars['module_path'] = drupal_get_path('module', 'formio');
 
   // The Bootswatch theme, if there is one.
-  $vars['bootswatch_theme'] = isset($form['enable']) ? '&theme=' . $form['theme'] : '';
+  $vars['theme'] = isset($form['enable']) ? '&theme=' . $form['theme'] : '';
 }
 
 /**
@@ -294,7 +311,7 @@ function formio_display_config_form(&$form, $conf) {
       '#type' => 'select',
       '#title' => t('Form Export'),
       '#options' => $options,
-      '#default_value' => isset($conf['machine_name']) ? $conf['machine_name'] : variable_get($conf . ':export', ''),
+      '#default_value' => isset($conf['machine_name']) ? $conf['machine_name'] : variable_get($conf . ':machine_name', ''),
     );
 
   }
@@ -498,7 +515,7 @@ function formio_preview_ajax_callback($form, $form_state, $is_new = TRUE) {
  * Implements hook_form_alter().
  */
 function formio_form_alter(&$form, &$form_state, $form_id) {
-  if (strpos($form['delta']['#value'], 'formio:') !== FALSE && $form_id === 'block_admin_configure') {
+  if ($form_id === 'block_admin_configure' && strpos($form['delta']['#value'], 'formio:') !== FALSE) {
 
     // Add the ajax callback for the preview. We want to trigger a preview
     // when the checkbox is selected and also when the theme is changed.
