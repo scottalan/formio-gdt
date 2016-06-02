@@ -10,7 +10,7 @@ $plugin = array(
   'title' => t('Form.io'),
   'description' => t('Renders an embedded form from Form.io'),
   'single' => TRUE,
-  'category' => array(t('form.io'), -10),
+  'category' => array(t('Form.io'), -10),
   'edit form' => 'formio_formio_form_content_type_edit_form',
   'render callback' => 'formio_formio_form_content_type_render',
   'hook theme' => 'formio_formio_form_content_type_theme',
@@ -40,54 +40,52 @@ function formio_formio_form_content_type_edit_form_submit($form, &$form_state) {
 
 /**
  * Implements the plugin render callback.
+ *
+ * @param string $subtype
+ *   This will be formio_form.
+ * @param array $conf
+ *   Will only contain data if this is being rendered via panels.
+ * @param array $args
+ *   Extra arguments. These can come from panels but are primarily used for
+ *   rendering a block.
+ * @param object $context
+ *   Not really used at this point but could require that a specific context
+ *   be present.
+ *
+ * @return array
+ *   A render array.
  */
-function formio_formio_form_content_type_render($subtype, $conf, $args, $context) {
-  if (isset($args['preset'])) {
-    $id = $args['form'];
-  }
-
-  if (isset($id)) {
+function formio_formio_form_content_type_render($subtype, $conf, $args, $context, $incoming_content) {
+  // This is a new export. We are still in the creation process.
+  if ($conf['is_new']) {
     $form = array(
-      'id' => $id,
+      'form_id' => $conf['form'],
+      'action' => 'not_drupal',
     );
+
   }
   else {
-    $key = isset($conf['formio_export']) ? $conf['formio_export'] : $args['formio_export'];
-    $use_theme = isset($conf['formio_use_bootswatch']) ? $conf['formio_use_bootswatch'] : $args['formio_use_bootswatch'];
-    $theme = isset($conf['formio_bootswatch_theme']) ? $conf['formio_bootswatch_theme'] : $args['formio_bootswatch_theme'];
-
-    // Get the export name.
-    list($pid, $name) = explode(':', $key);
-
-    // @todo: fix this
-    if (!isset($name)) {
-      $name = $args['formio_export'];
-    }
     // @todo: Update {panels_pane} references if an export is updated.
-    $export = formio_get_export($name);
+    $export = formio_get_export($conf['machine_name']);
 
     if (!isset($export)) {
       return array();
     }
 
     $form = array(
-      'pid' => $export->pid,
-      'id' => $export->id,
-      'title' => $export->title,
-      'form_name' => $export->form_name,
-      'name' => $export->name,
+      'fid' => $export->fid,
+      'form_id' => $export->formio_id,
+      'title' => $export->name,
+      'formio_name' => $export->formio_name,
+      'machine_name' => $export->machine_name,
+      'path' => $export->api_path,
       'action' => $export->action,
-      'path' => $export->path,
-      'theme' => $theme,
-      'use_theme' => $use_theme,
+      'theme' => isset($conf['theme']) ? $conf['theme'] : NULL,
+      'enable' => isset($conf['enable']) ? $conf['enable'] : 0,
     );
-
   }
 
-  if (!isset($form)) {
-    return FALSE;
-  }
-
+  // Build the form render array.
   $content = array(
     '#theme' => 'formio_form',
     '#form' => $form,
@@ -103,10 +101,9 @@ function formio_formio_form_content_type_render($subtype, $conf, $args, $context
     ),
   );
 
-  $block = new stdClass();
-  $block->title = '';
-  $block->content = $content;
-  return $block;
+  $formRenderer = new stdClass();
+  $formRenderer->content = $content;
+  return $formRenderer;
 }
 
 /**
@@ -127,10 +124,10 @@ function formio_form_content_type_add_headers() {
   );
 }
 
-function formio_form_content_type_setting_data($id) {
+function formio_form_content_type_setting_data($form_id) {
   return array(
     'reload' => TRUE,
-    'form' => $id,
+    'form' => $form_id,
     'api' => variable_get('formio_project_url', NULL),
     'target' => '#formio-form-render',
   );
