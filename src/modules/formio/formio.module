@@ -7,7 +7,6 @@
 require_once 'includes/formio.inc';
 include_once 'formio.block.inc';
 
-define('FORMIO_PRESET','formio_form');
 define('FORMIO_BLOCK','formio_block');
 define('BOOTSWATCH_API', '3');
 define('FORMIO_API_MAJOR', 1);
@@ -122,39 +121,36 @@ function formio_entity_info() {
       'entity keys' => array(
         'id' => 'sid',
         'bundle' => 'form',
-        'label' => 'title',
       ),
       'bundle keys' => array(
-        'bundle' => 'form',
+        'bundle' => 'machine_name',
       ),
       'bundles' => array(),
       'module' => 'formio',
     ),
-    FORMIO_PRESET => array(
+    'formio_form' => array(
       'label' => t('Formio Form'),
       'plural label' => t('Formio Forms'),
       'entity class' => 'Entity',
       'controller class' => 'EntityAPIControllerExportable',
-      'base table' => FORMIO_PRESET,
+      'base table' => 'formio_form',
       'fieldable' => FALSE,
-      'bundle of' => 'formio',
-//      'exportable' => TRUE,
-      'entity keys' => array(
-        'id' => 'pid',
-        'name' => 'name',
-      ),
       'module' => 'formio',
     )
   );
 
-  $types = db_select(FORMIO_PRESET, 'ff')
+  $types = db_select('formio_form', 'ff')
     ->fields('ff')
     ->execute()
-    ->fetchAllAssoc('name');
+    ->fetchAllAssoc('machine_name');
 
-  foreach ($types as $name => $type) {
-    $return['formio']['bundles'][$name] = array(
-      'label' => $type->title,
+  foreach ($types as $machine_name => $type) {
+    $return['formio']['bundles'][$machine_name] = array(
+      'label' => $type->name,
+      'admin' => array(
+        'path' => 'admin/structure/formio_form/manage',
+        'access arguments' => array('administer formio forms'),
+      ),
     );
   }
 
@@ -182,14 +178,43 @@ function formio_entity_label_callback($entity, $entity_type) {
  * @return array
  *   The preset.
  */
-function formio_get_export_by_pid($pid) {
-  $preset = db_select(FORMIO_PRESET, 'p')
-    ->fields('p')
-    ->condition('p.pid', $pid)
+function formio_get_export_by_fid($fid) {
+  $form = db_select('formio_form', 'f')
+    ->fields('f')
+    ->condition('f.fid', $fid)
     ->execute()
     ->fetchAssoc();
 
-  return $preset;
+  return $form;
+}
+
+/**
+ * Render a formio form.
+ *
+ * @param array $conf
+ * @param bool $new
+ */
+function formio_render(array $conf) {
+  // Render the form block.
+//  $block = module_invoke('formio', 'block_view', 'formio:' . $form_state['values']['machine_name'], $conf);
+
+  // Params needed for ctools. Building them out so we know what they are.
+  $type = 'formio_form';
+  $subtype = 'formio_form';
+  $args = array();
+  $keywords = $contexts = array();
+
+  // We are rendering a form during creation.
+//  if ($conf['is_new']) {
+//    $conf['enable'] = 1;
+//    $conf['theme'] = 'paper';
+//  }
+
+  ctools_include('content');
+  $renderer = ctools_content_render($type, $subtype, $conf, $keywords, $args, $contexts, 'hello');
+
+  // Render the html in the Formio fieldset. @todo: Fix this render
+  return theme('formio_form', $renderer->content);
 }
 
 /**
@@ -202,14 +227,14 @@ function formio_preprocess_formio_form(&$vars) {
   $vars['csrf_token'] = array_shift($token);
 
   // The form.io form _id and the name of the preset.
-  $vars['_id'] = $form['id'];
-  $vars['name'] = isset($form['name']) ? $form['name'] : 'new-preset';
+  $vars['form_id'] = $form['form_id'];
+  $vars['name'] = isset($form['form_name']) ? $form['form_name'] : 'new-preset';
 
   if ($form['action'] != 'drupal') {
     $callback = '';
   }
   else {
-    $url = variable_get('restful_hook_menu_base_path', 'api') . '/v' . FORMIO_API_MAJOR . '.' . FORMIO_API_MINOR . '/' . $form['name'];
+    $url = variable_get('restful_hook_menu_base_path', 'api') . '/v' . FORMIO_API_MAJOR . '.' . FORMIO_API_MINOR . '/' . $form['form_name'];
     $callback = url($url, array('absolute' => TRUE));
   }
 
@@ -224,7 +249,7 @@ function formio_preprocess_formio_form(&$vars) {
   $vars['module_path'] = drupal_get_path('module', 'formio');
 
   // The Bootswatch theme, if there is one.
-  $vars['bootswatch_theme'] = isset($form['formio_use_bootswatch']) ? '&theme=' . $form['formio_bootswatch_theme'] : '';
+  $vars['bootswatch_theme'] = isset($form['enable']) ? '&theme=' . $form['theme'] : '';
 }
 
 /**
@@ -236,6 +261,9 @@ function formio_preprocess_formio_form(&$vars) {
  */
 function formio_display_config_form(&$form, $conf) {
 
+  // Grab the preview form.
+  formio_preview_ajax_form($form);
+
   // Build the form.
   $form['formio'] = array(
     '#title' => 'Form',
@@ -246,7 +274,7 @@ function formio_display_config_form(&$form, $conf) {
   $exports = formio_get_all_exports();
 
   if (empty($exports)) {
-    $form['formio']['formio_export'] = array(
+    $form['formio']['machine_name'] = array(
       '#prefix' => '<div class="no-presets-found">',
       '#markup' => t('You need to add a preset first. !path', array('!path' => l(t('Here'), 'admin/structure/formio'))),
       '#suffix' => '</div>',
@@ -259,50 +287,58 @@ function formio_display_config_form(&$form, $conf) {
     $options = array();
     // Build the options based on exports.
     foreach ($exports as $export) {
-      $options[$export->pid . ':' . $export->name] = $export->title;
+      $options[$export->name] = $export->title;
     }
 
-    $form['formio']['formio_export'] = array(
+    $form['formio']['machine_name'] = array(
       '#type' => 'select',
       '#title' => t('Form Export'),
       '#options' => $options,
-      '#default_value' => isset($conf['formio_export']) ? $conf['formio_export'] : variable_get('formio_export:' . $conf, ''),
+      '#default_value' => isset($conf['machine_name']) ? $conf['machine_name'] : variable_get($conf . ':export', ''),
     );
 
   }
   // This is a block making a request.
   else {
-    list(, $value) = explode(':', $conf);
-    $form['formio']['formio_export'] = array('#type' => 'hidden', '#value' => $value);
+    // The machine_name of the form.
+    list(, $machine_name) = explode(':', $conf);
+
+    // Grab the export.
+    $export = $exports[$machine_name];
+
+    $form['formio']['machine_name'] = array('#type' => 'hidden', '#value' => $machine_name);
+    $form['formio']['id'] = array('#type' => 'hidden', '#value' => $export->formio_id);
+    $form['formio']['form_name'] = array('#type' => 'hidden', '#value' => $export->formio_name);
   }
 
-  $form['formio']['formio_use_bootswatch'] = array(
+  $form['formio']['enable'] = array(
     '#type' => 'checkbox',
     '#title' => t('Use bootswatch'),
-    '#default_value' => is_array($conf) ? $conf['formio_use_bootswatch'] : variable_get($conf . ':use_bootswatch', ''),
+    '#default_value' => is_array($conf) ? $conf['enable'] : variable_get($conf . ':use_bootswatch', ''),
   );
 
-  $form['formio']['formio_bootswatch_theme'] = array(
+  $form['formio']['theme'] = array(
     '#title' => t('Bootswatch Theme'),
-    '#default_value' => is_array($conf) ? $conf['formio_bootswatch_theme'] : variable_get($conf . ':bootswatch_theme', ''),
+    '#default_value' => is_array($conf) ? $conf['theme'] : variable_get($conf . ':bootswatch_theme', ''),
     '#states' => array(
       'invisible' => array(
-        ':input[name="formio_use_bootswatch"]' => array('checked' => FALSE),
+        ':input[name="enable"]' => array('checked' => FALSE),
       ),
     ),
   );
+
   // Get possible Bootswatch themes from the Bootswatch api.
   $swatches = formio_bootswatch();
   // If we have trouble communicating with the api then just present the user
   // with a textfield so they can enter the name of the theme.
   if ($swatches == FALSE) {
-    $form['formio']['formio_bootswatch_theme']['#type'] = 'textfield';
+    $form['formio']['theme']['#type'] = 'textfield';
   }
   // If we got a successful response from Bootswatch then populate a select
   // list with the options.
   else {
-    $form['formio']['formio_bootswatch_theme']['#type'] = 'select';
-    $form['formio']['formio_bootswatch_theme']['#options'] = $swatches;
+    $form['formio']['theme']['#type'] = 'select';
+    $form['formio']['theme']['#options'] = $swatches;
   }
 }
 
@@ -398,12 +434,10 @@ function formio_resource_plugin_alter(&$definitions) {
   foreach($forms as $key => $form) {
     $drupal_name = $form->name;
     $formio_name = $form->form_name;
-    $definitions[$drupal_name . ':1.0'] = array(
-      'name' => $drupal_name . ':1.0',
-      'resource' => $drupal_name,
+    $definitions[$formio_name . ':1.0'] = array(
+      'name' => $formio_name . ':1.0',
+      'resource' => $form->path,
       'label' => $form->title,
-      'majorVersion' => FORMIO_API_MAJOR,
-      'minorVersion' => FORMIO_API_MINOR,
       'description' => 'Restful endpoints for ' . $form->title,
       'authenticationTypes' => TRUE,
       'authenticationOptional' => FALSE,
@@ -412,12 +446,75 @@ function formio_resource_plugin_alter(&$definitions) {
       'dataProvider' => array(
         'entityType' => 'formio',
         'bundles' => array(
-          $drupal_name,
+          $formio_name,
         ),
       ),
+      'majorVersion' => FORMIO_API_MAJOR,
+      'minorVersion' => FORMIO_API_MINOR,
       'class' => formio_api_class(),
       'provider' => 'formio',
       'formatter' => 'formio',
+    );
+  }
+}
+
+function formio_preview_ajax_form(&$form) {
+  // Placeholder for rendered formio forms.
+  $form['formio_render'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Form Preview'),
+  );
+  $form['formio_render']['formio_display'] = array(
+    '#markup' => '<div id="formio-form-render"></div>',
+  );
+}
+
+/**
+ * Ajax callback to render a preview of the form.
+ *
+ * Renders the Form IO form that is selected.
+ *
+ * @param array $form
+ *   Form that triggered the callback.
+ * @param array $form_state
+ *   State of the form.
+ * @param bool $is_new
+ *   Lets us know if this is being called on a new export form.
+ *
+ * @return array
+ *   Ajax commands.
+ */
+function formio_preview_ajax_callback($form, $form_state, $is_new = TRUE) {
+  $commands = array();
+  $conf = $form_state['values'];
+  $conf['is_new'] = ($form['#form_id'] === 'block_admin_configure') ? FALSE : $is_new;
+  $commands[] = ajax_command_html('#formio-form-render', formio_render($conf));
+
+  // Return commands to the system to be executed.
+  return array('#type' => 'ajax', '#commands' => $commands);
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function formio_form_alter(&$form, &$form_state, $form_id) {
+  if (strpos($form['delta']['#value'], 'formio:') !== FALSE && $form_id === 'block_admin_configure') {
+
+    // Add the ajax callback for the preview. We want to trigger a preview
+    // when the checkbox is selected and also when the theme is changed.
+    $form['settings']['formio']['enable']['#ajax'] = $form['settings']['formio']['theme']['#ajax'] = array(
+      'callback' => 'formio_preview_ajax_callback',
+      'wrapper' => 'formio-form-render',
+      'path' => 'system/formio_ajax',
+      'method' => 'replace',
+    );
+    $form['settings']['formio']['theme']['#attached'] = array(
+      'library' => array(
+        array('formio', 'seamless'),
+      ),
+      'js' => array(
+        drupal_get_path('module', 'formio') . '/js/formio.js' => array(NULL, 'module'),
+      ),
     );
   }
 }
