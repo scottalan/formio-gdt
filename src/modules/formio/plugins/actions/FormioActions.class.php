@@ -5,6 +5,7 @@ interface FormioActionsInterface {
   function init($plugin);
   function action($plugin, $preset_name, $export);
 }
+
 class FormioActions implements FormioActionsInterface {
 
   // The plugin.

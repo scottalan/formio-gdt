@@ -326,6 +326,8 @@ class Formio implements FormioFormControllerInterface{
   }
 
   /**
+   * Load the form.
+   *
    * @return $this|bool
    */
   public function load() {
@@ -370,6 +372,8 @@ class Formio implements FormioFormControllerInterface{
   }
 
   /**
+   * Another options array.
+   *
    * @return array
    */
   public function fetchOptions() {
@@ -384,6 +388,8 @@ class Formio implements FormioFormControllerInterface{
   }
 
   /**
+   * Fetch all components of a form.
+   *
    * @return array
    */
   public function fetchComponents() {
@@ -403,7 +409,7 @@ class Formio implements FormioFormControllerInterface{
   }
 
   /**
-   *
+   * Build select options.
    */
   public function selectDisplay() {
     $display = array();

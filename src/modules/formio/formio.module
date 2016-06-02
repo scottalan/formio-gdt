@@ -166,7 +166,10 @@ function formio_entity_info() {
  */
 function formio_entity_label_callback($entity, $entity_type) {
   // @todo: Really implement this.
-  return $entity->entityInfo['bundles']['form']['label'];
+  $info = $entity->entityInfo();
+  $bundle = $info['entity keys']['bundle'];
+  $label = $info['bundles'][$bundle]['label'];
+  return $label;
 }
 
 /**
@@ -240,18 +243,19 @@ function formio_render(array $conf) {
 function formio_preprocess_formio_form(&$vars) {
   $form = &$vars['form'];
 
-  $token = restful_csrf_session_token();
-  $vars['csrf_token'] = array_shift($token);
+  $token = $form['action'] === 'drupal' ? restful_csrf_session_token() : (array) Formio::apiKey();
+  $vars['token'] = array_shift($token);
 
   // The form.io form _id and the name of the preset.
   $vars['formio_id'] = $form['formio_id'];
   $vars['formio_name'] = isset($form['formio_name']) ? $form['formio_name'] : 'new-preset';
 
   if ($form['action'] != 'drupal') {
-    $callback = '';
+    global $base_url;
+    $callback = $base_url . '/formio/' . $vars['formio_name'];
   }
   else {
-    $url = variable_get('restful_hook_menu_base_path', 'api') . '/v' . FORMIO_API_MAJOR . '.' . FORMIO_API_MINOR . '/' . $form['form_name'];
+    $url = variable_get('restful_hook_menu_base_path', 'api') . '/v' . FORMIO_API_MAJOR . '.' . FORMIO_API_MINOR . '/' . $form['machine_name'];
     $callback = url($url, array('absolute' => TRUE));
   }
 
@@ -448,14 +452,14 @@ function formio_load_drupal_forms() {
 function formio_resource_plugin_alter(&$definitions) {
   $forms = formio_load_drupal_forms();
 
-  foreach($forms as $key => $form) {
-    $drupal_name = $form->name;
-    $formio_name = $form->form_name;
-    $definitions[$formio_name . ':1.0'] = array(
-      'name' => $formio_name . ':1.0',
-      'resource' => $form->path,
-      'label' => $form->title,
-      'description' => 'Restful endpoints for ' . $form->title,
+  foreach($forms as $name => $form) {
+    $drupal_name = $form->machine_name;
+    $formio_name = $form->formio_name;
+    $definitions[$drupal_name . ':1.0'] = array(
+      'name' => $drupal_name . ':1.0',
+      'resource' => $drupal_name,
+      'label' => $name,
+      'description' => 'Restful endpoints for ' . $name,
       'authenticationTypes' => TRUE,
       'authenticationOptional' => FALSE,
       'discoverable' => TRUE,
@@ -463,7 +467,7 @@ function formio_resource_plugin_alter(&$definitions) {
       'dataProvider' => array(
         'entityType' => 'formio',
         'bundles' => array(
-          $formio_name,
+          $drupal_name,
         ),
       ),
       'majorVersion' => FORMIO_API_MAJOR,

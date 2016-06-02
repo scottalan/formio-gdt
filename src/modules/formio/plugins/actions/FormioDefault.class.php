@@ -47,10 +47,10 @@ class FormioDefault extends FormioActions implements FormioActionsInterface {
 
     // This is used to validate the request. This will be posted back to form.io
     // and the result will need to be a 200. Add a ?dryrun=1 query to the post.
-    $apikey = getallheaders()['X-Jwt-Token'];
+    $token = getallheaders()['X-Jwt-Token'];
 
     // Consider @see drupal_deliver_html_page().
-    $result = $this->rest_call($apikey, $uri, $data);
+    $result = $this->rest_call($token, $uri, $data);
 
     if (empty($result['error'])) {
       $output = $result['response'];
@@ -69,7 +69,7 @@ class FormioDefault extends FormioActions implements FormioActionsInterface {
   /**
    * Makes a restful call to Form.io.
    *
-   * @param string $apikey
+   * @param string $token
    *   The x-token used for authentication.
    * @param string $uri
    *   The api uri.
@@ -79,7 +79,7 @@ class FormioDefault extends FormioActions implements FormioActionsInterface {
    * @return array
    *   The result of the rest call.
    */
-  private function rest_call($apikey, $uri, $data) {
+  private function rest_call($token, $uri, $data) {
     // Initialize the session.
     $curl = curl_init();
 
@@ -97,7 +97,7 @@ class FormioDefault extends FormioActions implements FormioActionsInterface {
       CURLOPT_HTTPHEADER => array(
         "cache-control: no-cache",
         "content-type: application/json",
-        "x-jwt-token: " . $apikey,
+        "x-jwt-token: " . $token,
       ),
     ));
 
