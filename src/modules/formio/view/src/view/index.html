@@ -196,8 +196,6 @@
         var returnUrl = query.return;
         var form = query.form;
         var token = query.token;
-        // Set the header for a drupal submission by default.
-        var header = 'X-CSRF-Token';
         if (token) {
           // We must have a path or form to continue.
           if (!path && !form) {
@@ -224,23 +222,27 @@
 
         // Bind to the submission of the form.
         if (query.action) {
-
+          var prevent = true;
+          var headerKey = '';
+          if (query.api) {
+            headerKey = 'x-token';
+            prevent = false;
+          }
+          else {
+            headerKey = 'X-CSRF-Token';
+          }
           $rootScope.$on('formSubmit', function (event, submission) {
-            // Don't prevent default action if submitting to formio and
-            // switch the header.
-            if (query.api) {
-              header = 'x-token';
-            }
-            else {
+            if (prevent) {
               event.preventDefault();
-              }
+            }
             if (!submission) {
               return;
             }
+
+            var addHeader = Object.defineProperty( {}, headerKey, { value: token } );
+
             $http.post(query.action, submission, {
-              headers: {
-                [header] : token
-              }
+              headers: addHeader
             }).success(function (submission) {
               Formio.clearCache();
               parentPage.send({formSubmission: submission});
