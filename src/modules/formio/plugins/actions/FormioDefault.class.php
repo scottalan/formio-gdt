@@ -32,11 +32,11 @@ class FormioDefault extends FormioActions implements FormioActionsInterface {
     // A json object containing the contents of the form submission.
     $data = file_get_contents('php://input');
 
-    $request = formio_rest('form/' . $export->id);
+    $request = formio_rest('form/' . $export->formio_id);
     $results = $request->fetchKeyed('path');
 
     // We should always have a path but in case we don't throw an error.
-    $path = $results->forms['path'];
+    $path = $results->result['path'];
     if (!isset($path)) {
       // TODO: Cause an error for $result['error'] and see how it looks.
       drupal_json_output(json_encode('Example: Could not find a path'));
@@ -47,7 +47,7 @@ class FormioDefault extends FormioActions implements FormioActionsInterface {
 
     // This is used to validate the request. This will be posted back to form.io
     // and the result will need to be a 200. Add a ?dryrun=1 query to the post.
-    $token = getallheaders()['X-Jwt-Token'];
+    $token = getallheaders()['X-Token'];
 
     // Consider @see drupal_deliver_html_page().
     $result = $this->rest_call($token, $uri, $data);
@@ -97,7 +97,7 @@ class FormioDefault extends FormioActions implements FormioActionsInterface {
       CURLOPT_HTTPHEADER => array(
         "cache-control: no-cache",
         "content-type: application/json",
-        "x-jwt-token: " . $token,
+        "x-token: " . $token,
       ),
     ));
 

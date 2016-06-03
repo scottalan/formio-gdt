@@ -112,7 +112,6 @@ function formio_entity_info() {
     'formio' => array(
       'label' => t('Formio Submission'),
       'plural label' => t('Formio Submissions'),
-      'label callback' => 'formio_entity_label_callback',
       'entity class' => 'Entity',
       'controller class' => 'EntityAPIController',
       'base table' => 'formio',
@@ -224,12 +223,6 @@ function formio_render(array $conf) {
   $args = array();
   $keywords = $contexts = array();
 
-  // We are rendering a form during creation.
-//  if ($conf['is_new']) {
-//    $conf['enable'] = 1;
-//    $conf['theme'] = 'paper';
-//  }
-
   ctools_include('content');
   $renderer = ctools_content_render($type, $subtype, $conf, $keywords, $args, $contexts, 'hello');
 
@@ -246,23 +239,35 @@ function formio_render(array $conf) {
 function formio_preprocess_formio_form(&$vars) {
   $form = &$vars['form'];
 
-  $token = $form['action'] === 'drupal' ? restful_csrf_session_token() : (array) Formio::apiKey();
-  $vars['token'] = array_shift($token);
+  $formio_form = '';
 
   // The form.io form _id and the name of the preset.
   $vars['formio_id'] = $form['formio_id'];
   $vars['formio_name'] = isset($form['formio_name']) ? $form['formio_name'] : 'new-preset';
 
-  if ($form['action'] != 'drupal') {
-    $callback = '';
+  if ($form['action'] !== 'drupal') {
+    global $base_url;
+    $token = Formio::apiKey();
+    $use_api = TRUE;
+    // If this is a form 'preview' don't set the form.
+    $formio_form = ($vars['formio_name'] !== 'new-preset') ? '&formioForm=' . $form['formio_name'] . '/submission' : '';
+    $callback = ($vars['formio_name'] !== 'new-preset') ? $base_url . '/formio/' . $form['machine_name'] : '';
   }
   else {
+    $use_api = TRUE;
+    $token = array_shift(restful_csrf_session_token());
     $url = variable_get('restful_hook_menu_base_path', 'api') . '/v' . FORMIO_API_MAJOR . '.' . FORMIO_API_MINOR . '/' . $form['machine_name'];
     $callback = url($url, array('absolute' => TRUE));
   }
 
   // Set the callback.
   $vars['callback'] = $callback;
+  // Set the token.
+  $vars['token'] = $token;
+  // Set the form if we define one.
+  $vars['formio_form'] = $formio_form;
+  // Whether we are submitting to drupal.
+  $vars['use_api'] = $use_api;
 
   // Get the project hash from the uri.
   $project = parse_url(trim(variable_get('formio_project_url', NULL)));

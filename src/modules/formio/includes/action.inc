@@ -95,10 +95,8 @@ function formio_submission_handler($plugin_name, $name) {
   // Load the preset export from the database.
   ctools_include('export');
   $export = formio_get_export($name);
-  $key = $export->action;
-  list($module, $action) = explode(':', $key);
 
-  $plugin = formio_get_module_action($module, $action);
+  $plugin = formio_get_module_action('formio', $export->action);
   $handler = formio_actions_get_handler($plugin);
   if ($handler) {
     // Call the handler's action.
