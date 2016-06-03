@@ -233,6 +233,9 @@ function formio_render(array $conf) {
   ctools_include('content');
   $renderer = ctools_content_render($type, $subtype, $conf, $keywords, $args, $contexts, 'hello');
 
+  // Add formio libraries.
+  drupal_add_library('formio', 'seamless');
+
   // Render the html in the Formio fieldset. @todo: Fix this render
   return theme('formio_form', $renderer->content);
 }
@@ -251,8 +254,7 @@ function formio_preprocess_formio_form(&$vars) {
   $vars['formio_name'] = isset($form['formio_name']) ? $form['formio_name'] : 'new-preset';
 
   if ($form['action'] != 'drupal') {
-    global $base_url;
-    $callback = $base_url . '/formio/' . $vars['formio_name'];
+    $callback = '';
   }
   else {
     $url = variable_get('restful_hook_menu_base_path', 'api') . '/v' . FORMIO_API_MAJOR . '.' . FORMIO_API_MINOR . '/' . $form['machine_name'];
@@ -268,6 +270,9 @@ function formio_preprocess_formio_form(&$vars) {
 
   // Path to the formio module.
   $vars['module_path'] = drupal_get_path('module', 'formio');
+
+  // The name of the form.
+  $vars['name'] = $vars['formio_name'] != 'new-preset' ? '&name=' . $vars['formio_name'] : '';
 
   // The Bootswatch theme, if there is one.
   $vars['theme'] = isset($form['enable']) ? '&theme=' . $form['theme'] : '';
@@ -454,7 +459,6 @@ function formio_resource_plugin_alter(&$definitions) {
 
   foreach($forms as $name => $form) {
     $drupal_name = $form->machine_name;
-    $formio_name = $form->formio_name;
     $definitions[$drupal_name . ':1.0'] = array(
       'name' => $drupal_name . ':1.0',
       'resource' => $drupal_name,

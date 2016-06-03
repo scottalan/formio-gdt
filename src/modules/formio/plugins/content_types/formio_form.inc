@@ -59,7 +59,7 @@ function formio_formio_form_content_type_render($subtype, $conf, $args, $context
   // This is a new export. We are still in the creation process.
   if ($conf['is_new']) {
     $form = array(
-      'form_id' => $conf['form'],
+      'formio_id' => $conf['id'],
       'action' => 'not_drupal',
     );
 
