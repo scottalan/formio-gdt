@@ -7,7 +7,6 @@ use Drupal\restful\Plugin\resource\ResourceInterface;
 
 class Forms__1_0 extends ResourceEntity implements ResourceInterface{
 
-
   protected function dataProviderClassName() {
     if ($this->getEntityType() == 'formio') {
       return '\Drupal\formio\Plugin\resource\DataProvider\DataProviderFormio';
@@ -27,6 +26,9 @@ class Forms__1_0 extends ResourceEntity implements ResourceInterface{
         'property' => $key
       );
     }
+
+    $public_fields['formio_id'] = array('property' => 'form_id');
+    unset($public_fields['label']);
 
     return $public_fields;
   }
