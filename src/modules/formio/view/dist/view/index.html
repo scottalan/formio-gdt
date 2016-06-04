@@ -12,4 +12,68 @@
     src="https://cdn.rawgit.com/alrra/browser-logos/master/internet-explorer/internet-explorer_64x64.png"/>You
   are using an <strong>outdated</strong> browser. Please <a
       href="http://browsehappy.com/">upgrade your browser</a> to improve your
-  experience.</p><![endif]--><!-- BROWSE HAPPY ENDS HERE --><!-- Add the form.io form. --><div class="container main"><formio src="src"></formio></div><script src="https://cdn.rawgit.com/jakearchibald/es6-promise/v3.0.2/dist/es6-promise.min.js"></script><script src="https://code.jquery.com/jquery-2.2.0.min.js"></script><script src="https://cdn.rawgit.com/travist/seamless.js/master/build/seamless.child.min.js"></script><script src="https://cdn.rawgit.com/szimek/signature_pad/v1.5.2/signature_pad.min.js"></script><script src="https://npmcdn.com/ng-formio@latest/dist/formio-full.js"></script><script type="text/javascript">var parentPage=$.seamless.connect({container:"div.main"});angular.module("formioFormApp",["formio"]).run(["$rootScope","$location","Formio","$http",function(o,r,e,n){o.formioSrc="";var t=r.path(),i=r.search(),a=(i["return"],i.form),c=i.token;if(c&&(t||a)){if(!a&&t){t=t.replace(/^\//,"");var f=t.split("/");if(f.length<2)return;a="https://"+f.shift()+".form.io/"+f.join("/")}if(o.form={},o.src=a,i.action){var s=!0,m="";i.api?(m="x-token",s=!1):m="X-CSRF-Token",o.$on("formSubmit",function(o,r){if(s&&o.preventDefault(),r){var t=Object.defineProperty({},m,{value:c});n.post(i.action,r,{headers:t}).success(function(o){e.clearCache(),parentPage.send({formSubmission:o})})}})}}}])</script></body></html>
+  experience.</p><![endif]--><!-- BROWSE HAPPY ENDS HERE --><!-- Add the form.io form. --><div class="container main"><formio src="src"></formio></div><script src="https://cdn.rawgit.com/jakearchibald/es6-promise/v3.0.2/dist/es6-promise.min.js"></script><script src="https://code.jquery.com/jquery-2.2.0.min.js"></script><script src="https://cdn.rawgit.com/travist/seamless.js/master/build/seamless.child.min.js"></script><script src="https://cdn.rawgit.com/szimek/signature_pad/v1.5.2/signature_pad.min.js"></script><script src="https://npmcdn.com/ng-formio@latest/dist/formio-full.js"></script><script type="text/javascript">var parentPage = $.seamless.connect({
+    container: 'div.main'
+  });
+  angular.module('formioFormApp', ['formio'])
+      .run(['$rootScope', '$location', 'Formio', '$http', function ($rootScope, $location, Formio, $http) {
+        $rootScope.formioSrc = '';
+        var path = $location.path();
+        var query = $location.search();
+        var returnUrl = query.return;
+        var form = query.form;
+        var token = query.token;
+        if (token) {
+          // We must have a path or form to continue.
+          if (!path && !form) {
+            return;
+          }
+          else if (!form && path) {
+            path = path.replace(/^\//, '');
+            var paths = path.split('/');
+            if (paths.length < 2) {
+              return;
+            }
+            form = 'https://' + paths.shift() + '.form.io/' + paths.join('/');
+          }
+        }
+        else {
+          return;
+        }
+
+        // Setup the form.
+        $rootScope.form = {};
+
+        // Load the form.
+        $rootScope.src = form;
+
+        // Bind to the submission of the form.
+        if (query.action) {
+          var prevent = true;
+          var headerKey = '';
+          if (query.api) {
+            headerKey = 'x-token';
+            prevent = false;
+          }
+          else {
+            headerKey = 'X-CSRF-Token';
+          }
+          $rootScope.$on('formSubmit', function (event, submission) {
+            if (prevent) {
+              event.preventDefault();
+            }
+            if (!submission) {
+              return;
+            }
+
+            $http.post(query.action, submission, {
+              headers: {
+                [headerKey]: token
+              }
+            }).success(function (submission) {
+              Formio.clearCache();
+              parentPage.send({formSubmission: submission});
+            });
+          });
+        }
+      }])</script></body></html>

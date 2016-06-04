@@ -22,7 +22,7 @@ class Forms__1_0 extends ResourceEntity implements ResourceInterface{
     $instance_fields = field_info_instances($this->entityType, $this->bundles[0]);
     // Map all fields to public.
     foreach($instance_fields as $key => $instance_field) {
-      $public_fields[str_replace('formio_', '', $key)] = array(
+      $public_fields[$key] = array(
         'property' => $key
       );
     }

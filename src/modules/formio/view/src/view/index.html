@@ -239,10 +239,10 @@
               return;
             }
 
-            var addHeader = Object.defineProperty( {}, headerKey, { value: token } );
-
             $http.post(query.action, submission, {
-              headers: addHeader
+              headers: {
+                [headerKey]: token
+              }
             }).success(function (submission) {
               Formio.clearCache();
               parentPage.send({formSubmission: submission});
