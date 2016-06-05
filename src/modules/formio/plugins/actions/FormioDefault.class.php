@@ -32,7 +32,7 @@ class FormioDefault extends FormioActions implements FormioActionsInterface {
     // A json object containing the contents of the form submission.
     $data = file_get_contents('php://input');
 
-    $request = formio_rest('form/' . $export->formio_id);
+    $request = formio_rest('form/' . $export->_id);
     $results = $request->fetchKeyed('path');
 
     // We should always have a path but in case we don't throw an error.

@@ -28,7 +28,7 @@ function formio_schema_1() {
     'export' => array(
       'key' => 'machine_name',
       'key name' => 'Unique Name',
-      'admin_title' => 'name',
+      'admin_title' => 'title',
       'primary key' => 'fid',
       'identifier' => 'formio',
       'default hook' => 'formio_form',
@@ -55,12 +55,12 @@ function formio_schema_1() {
         'description' => 'Primary ID field for the table. Not used for anything except internal lookups.',
         'no export' => TRUE, // Do not export database-only keys.
       ),
-      'name' => array(
+      'drupal_title' => array(
         'type' => 'varchar',
         'length' => 255,
         'not null' => TRUE,
         'default' => '',
-        'description' => 'The name of the form in Drupal.',
+        'description' => 'The title of the form in Drupal.',
         'translatable' => TRUE,
       ),
       'machine_name' => array(
@@ -70,27 +70,27 @@ function formio_schema_1() {
         'default' => '',
         'description' => 'The machine-readable name of the form in Drupal.',
       ),
-      'formio_id' => array(
+      '_id' => array(
         'type' => 'varchar',
         'length' => 24,
         'description' => 'The unique _id of the Formio form.',
       ),
-      'formio_title' => array(
+      'title' => array(
         'type' => 'varchar',
         'length' => 255,
         'description' => 'The form.io title of the form.',
       ),
-      'formio_name' => array(
+      'name' => array(
         'type' => 'varchar',
         'length' => 255,
         'description' => 'The form.io name of the form.',
       ),
-      'api_path' => array(
+      'path' => array(
         'type' => 'varchar',
         'length' => 255,
         'description' => 'The form.io api path of the form.',
       ),
-      'formio_type' => array(
+      'type' => array(
         'type' => 'varchar',
         'length' => 255,
         'description' => 'Type of form. Typically form or resource.',
@@ -143,19 +143,19 @@ function formio_schema_1() {
         'description' => 'Submission ID field for the table.',
         'no export' => TRUE, // Do not export database-only keys.
       ),
-      'form_id' => array(
+      '_id' => array(
         'type' => 'varchar',
         'length' => 24,
         'description' => 'The form.io _id of the form submission.',
       ),
-      'form' => array(
+      'instance' => array(
         'type' => 'varchar',
         'length' => 255,
         'not null' => TRUE,
         'default' => '',
         'description' => 'The machine-readable name of the form in Drupal.',
       ),
-      'formio_name' => array(
+      'name' => array(
         'type' => 'varchar',
         'length' => 255,
         'not null' => TRUE,

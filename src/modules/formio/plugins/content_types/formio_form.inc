@@ -59,7 +59,7 @@ function formio_formio_form_content_type_render($subtype, $conf, $args, $context
   // This is a new export. We are still in the creation process.
   if ($conf['is_new']) {
     $form = array(
-      'formio_id' => $conf['id'],
+      '_id' => $conf['_id'],
       'action' => 'not_drupal',
     );
 
@@ -77,11 +77,11 @@ function formio_formio_form_content_type_render($subtype, $conf, $args, $context
 
       $form = array(
         'fid' => $export->fid,
-        'formio_id' => $export->formio_id,
+        '_id' => $export->_id,
+        'title' => $export->title,
         'name' => $export->name,
-        'formio_name' => $export->formio_name,
         'machine_name' => $export->machine_name,
-        'api_path' => $export->api_path,
+        'path' => $export->path,
         'action' => $export->action,
         'theme' => isset($conf['theme']) ? $conf['theme'] : NULL,
         'enable' => isset($conf['enable']) ? $conf['enable'] : 0,

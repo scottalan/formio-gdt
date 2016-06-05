@@ -193,7 +193,6 @@
         $rootScope.formioSrc = '';
         var path = $location.path();
         var query = $location.search();
-        var returnUrl = query.return;
         var form = query.form;
         var token = query.token;
         if (token) {
@@ -234,6 +233,7 @@
               }
             }).success(function (submission) {
               Formio.clearCache();
+              $rootScope.$broadcast('submitDone', submission, 'Submission Complete');
               parentPage.send({formSubmission: submission});
             });
           });

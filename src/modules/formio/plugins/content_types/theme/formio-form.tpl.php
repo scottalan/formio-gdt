@@ -5,6 +5,9 @@
   }
   $(function () {
     $('#formio-form-<?php print $formio_name; ?>').seamless({fallback: false}).receive(function (event, submission) {
+      <?php if (isset($redirect)): ?>
+        window.location = <?php print $redirect; ?>;
+      <?php endif; ?>
     });
   });
 })(jQuery);

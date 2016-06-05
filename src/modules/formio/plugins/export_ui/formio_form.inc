@@ -62,63 +62,14 @@ function formio_form_display_form($form, &$form_state) {
  * Implements formio_form_edit_form().
  */
 function formio_form_edit_form(&$form, &$form_state) {
-  $item = &$form_state['item'];
-
   // Add formio libraries.
   drupal_add_library('formio', 'seamless');
-  // Add the form selection part of the form.
-  $has_forms = formio_form_selection_form($form, $form_state, $item->machine_name, $item->name);
 
-  if ($has_forms) {
-
-    $actions = array(
-      'drupal' => 'Save to Drupal',
-      'formio' => 'Save to Form.io'
-    );
-
-    $form['formio_form']['action'] = array(
-      '#title' => t('Action'),
-      '#type' => 'select',
-      '#options' => $actions,
-      '#default_value' => isset($item->action) ? $item->action : 'drupal',
-    );
-
-    // Make sure that whatever happens, the buttons go to the bottom.
-    $form['buttons']['#weight'] = 100;
-
-    // Add buttons.
-    $form['buttons']['submit'] = array(
-      '#type' => 'submit',
-      '#value' => t('Save'),
-    );
-
-    $form['buttons']['delete'] = array(
-      '#type' => 'submit',
-      '#value' => $item->export_type & EXPORT_IN_CODE ? t('Revert') : t('Delete'),
-      '#access' => $form_state['op'] === 'edit' && $item->export_type & EXPORT_IN_DATABASE,
-      '#submit' => array('ctools_export_ui_edit_item_form_delete'),
-    );
-  }
-}
-
-/**
- * Provides a selector to choose a Formio form.
- *
- * @param array $form
- *   The current form.
- * @param array $form_state
- *   The current state of the form.
- * @param string $machine_name
- *   The machine_name of an existing form.
- * @param string $name
- *   The name of an existing form.
- *
- * @return bool
- *   Returns FALSE if there are no forms.
- */
-function formio_form_selection_form(&$form, &$form_state, $machine_name = NULL, $name = NULL) {
   // Need to include this file.
   ctools_form_include($form_state, 'formio_form', 'formio', 'plugins/export_ui');
+
+  // Re-write the default admin info.
+  $form['info'] = array();
 
   $formio_forms = formio_get_formio_forms();
 
@@ -129,18 +80,34 @@ function formio_form_selection_form(&$form, &$form_state, $machine_name = NULL, 
     $options = array();
     $options['_none'] = t('Choose your form...');
     foreach ($formio_forms as $formio_form) {
-      $options[$formio_form['_id']] = $formio_form['name'];
+      $options[$formio_form['_id']] = $formio_form['title'];
     }
 
-    // Require a name.
-    $form['info']['name']['#required'] = TRUE;
+    $form['info']['title'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Administrative title'),
+      '#description' => t('The name of this form.'),
+      '#required' => TRUE,
+      '#default_value' => isset($item->drupal_title) ? $item->drupal_title : '',
+      '#size' => 40,
+    );
+    $form['info']['machine_name'] = array(
+      '#type' => 'machine_name',
+      '#title' => t('Machine name'),
+      '#machine_name' => array(
+        'exists' => 'formio_form_name_exists',
+        'source' => array('drupal_title'),
+      ),
+      '#description' => t('The machine readable name of this form. It must be unique, and it must contain only alphanumeric characters and underscores. Once created, you will not be able to change this value!'),
+      '#default_value' => isset($item->machine_name) ? $item->machine_name : '',
+    );
 
     if ($form_state['op'] === 'edit') {
       $form['info']['machine_name']['#disabled'] = TRUE;
-      $form['info']['machine_name']['#value'] = $machine_name;
+      $form['info']['machine_name']['#value'] = $item->machine_name;
     }
 
-    $html = '<button type="button" id="reload-preset" class="btn btn-info btn-sm">reload</button>';
+    // $html = '<button type="button" id="reload-preset" class="btn btn-info btn-sm">reload</button>';.
     $form['formio_form'] = array(
       '#type' => 'fieldset',
       '#title' => t('Preset'),
@@ -165,11 +132,11 @@ function formio_form_selection_form(&$form, &$form_state, $machine_name = NULL, 
     }
 
     $id = drupal_html_id('formio-preset-form');
-    $form['formio_form']['id'] = array(
+    $form['formio_form']['_id'] = array(
       '#title' => t('Form'),
       '#type' => 'select',
       '#options' => $options,
-      '#default_value' => isset($item->formio_id) ? $item->formio_id : '',
+      '#default_value' => isset($item->_id) ? $item->_id : '',
       '#prefix' => '<div id="' . $id . '">',
       '#suffix' => '</div>',
       '#disabled' => $disabled,
@@ -189,12 +156,41 @@ function formio_form_selection_form(&$form, &$form_state, $machine_name = NULL, 
       ),
     );
 
-    formio_preview_ajax_form($form);
+    $actions = array(
+      'drupal' => 'Save to Drupal',
+    );
 
-    return TRUE;
+    $form['formio_form']['action'] = array(
+      '#title' => t('Action'),
+      '#type' => 'select',
+      '#options' => $actions,
+      '#default_value' => isset($item->action) ? $item->action : 'drupal',
+    );
+
+    $form['action_settings']['redirect'] = array(
+      '#title' => t('Redirect on submission'),
+      '#type' => 'textfield',
+      '#default_value' => (!empty($item->action_settings) && isset($item->action_settings['redirect'])) ? $item->action_settings['redirect'] : '',
+    );
+
+    // Make sure that whatever happens, the buttons go to the bottom.
+    $form['buttons']['#weight'] = 100;
+
+    // Add buttons.
+    $form['buttons']['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Save'),
+    );
+
+    $form['buttons']['delete'] = array(
+      '#type' => 'submit',
+      '#value' => $item->export_type & EXPORT_IN_CODE ? t('Revert') : t('Delete'),
+      '#access' => $form_state['op'] === 'edit' && $item->export_type & EXPORT_IN_DATABASE,
+      '#submit' => array('ctools_export_ui_edit_item_form_delete'),
+    );
   }
 
-  return FALSE;
+  formio_preview_ajax_form($form);
 }
 
 /**
@@ -211,21 +207,28 @@ function formio_form_edit_form_validate(&$form, &$form_state) {
  */
 function formio_form_edit_form_submit(&$form, &$form_state) {
   $item = &$form_state['item'];
-  // Values that are returned from the export form.
-  $values = array('name', 'machine_name', 'action');
-  foreach ($values as $key) {
-    if(isset($form_state['values'][$key])) {
-      $item->{$key} = $form_state['values'][$key];
-    }
+  // Get Drupal title and machine_name.
+  foreach (element_children($form_state['complete form']['info']) as $key) {
+    $item->{$key} = $form_state['values'][$key];
   }
-  $item->action_settings = array();
-  $item->formio_id = $form_state['values']['id'];
+  // Get values for the form.
+  foreach (element_children($form_state['complete form']['formio_form']) as $key) {
+    $item->{$key} = $form_state['values'][$key];
+  }
+  // Get values for the action settings.
+  foreach (element_children($form_state['complete form']['action_settings']) as $key) {
+    $item->action_settings[$key] = $form_state['values'][$key];
+  }
+
+
+  $item->_id = $form_state['values']['_id'];
   // Get form and fill in additional form details.
-  $formio_form = formio_get_form($item->formio_id);
-  $item->formio_name = $formio_form['name'];
-  $item->formio_title = $formio_form['title'];
-  $item->api_path = $formio_form['path'];
-  $item->formio_type = $formio_form['type'];
+  $formio_form = formio_get_form($item->_id);
+  $item->name = $formio_form['name'];
+  $item->drupal_title = $form_state['values']['title'];
+  $item->title = $formio_form['title'];
+  $item->path = $formio_form['path'];
+  $item->type = $formio_form['type'];
   $item->components = $formio_form['components'];
   $item->created = (new DateTime($formio_form['created']))->getTimestamp();
   $item->changed = (new DateTime($formio_form['modified']))->getTimestamp();
@@ -359,7 +362,7 @@ function formio_add_field($bundle, $component) {
     $instance = field_create_instance($instance);
   }
   else {
-    // @todo: Can we update an instance?.
+    // If field has no data allow updating.
     if (!field_has_data($field)) {
       field_update_instance($instance);
     }
@@ -373,8 +376,8 @@ function formio_add_field($bundle, $component) {
  * @see menu_edit_menu()
  * @see form_validate_machine_nxame()
  */
-function formio_form_name_exists($name, $element, &$form_state) {
-  $name_exists = db_query_range('SELECT 1 FROM {formio_form} WHERE name = :name', 0, 1, array(':name' => $name))->fetchField();
+function formio_form_name_exists($machine_name, $element, &$form_state) {
+  $name_exists = db_query_range('SELECT 1 FROM {formio_form} WHERE machine_name = :machine_name', 0, 1, array(':machine_name' => $machine_name))->fetchField();
   return $name_exists;
 }
 
@@ -389,7 +392,7 @@ function formio_form_name_exists($name, $element, &$form_state) {
  * @return object
  *   The form object.
  */
-function formio_get_form($id, $reset = FALSE) {
+function formio_get_form($_id, $reset = FALSE) {
   static $drupal_static_fast;
   if (!isset($drupal_static_fast)) {
     $drupal_static_fast = &drupal_static(__FUNCTION__);
@@ -399,8 +402,8 @@ function formio_get_form($id, $reset = FALSE) {
     $forms = array();
   }
 
-  if ($reset || !isset($forms[$id])) {
-    $formio = formio_rest('form/' . $id);
+  if ($reset || !isset($forms[$_id])) {
+    $formio = formio_rest('form/' . $_id);
   }
 
   return $formio->result;

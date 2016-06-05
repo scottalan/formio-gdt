@@ -7,7 +7,6 @@
 require_once 'includes/formio.inc';
 include_once 'formio.block.inc';
 
-define('FORMIO_BLOCK','formio_block');
 define('BOOTSWATCH_API', '3');
 define('FORMIO_API_MAJOR', 1);
 define('FORMIO_API_MINOR', 0);
@@ -119,7 +118,7 @@ function formio_entity_info() {
 //      'exportable' => TRUE,
       'entity keys' => array(
         'id' => 'sid',
-        'bundle' => 'form',
+        'bundle' => 'instance',
       ),
       'bundle keys' => array(
         'bundle' => 'machine_name',
@@ -240,8 +239,16 @@ function formio_preprocess_formio_form(&$vars) {
   $form = &$vars['form'];
 
   // The form.io form _id and the name of the preset.
-  $vars['formio_id'] = $form['formio_id'];
-  $vars['formio_name'] = isset($form['formio_name']) ? $form['formio_name'] : 'new-preset';
+  $vars['formio_id'] = $form['_id'];
+  $vars['formio_name'] = isset($form['name']) ? $form['name'] : 'new-preset';
+
+  $actions = $form['action_settings'];
+  if (!empty($actions)) {
+    // Redirect on submission.
+    if (isset($actions['redirect']) && !empty($actions['redirect'])) {
+      $vars['redirect'] = $actions['redirect'];
+    }
+  }
 
   $token = restful_csrf_session_token();
   $token = array_shift($token);
@@ -327,8 +334,8 @@ function formio_display_config_form(&$form, $conf) {
     $export = $exports[$machine_name];
 
     $form['formio']['machine_name'] = array('#type' => 'hidden', '#value' => $machine_name);
-    $form['formio']['id'] = array('#type' => 'hidden', '#value' => $export->formio_id);
-    $form['formio']['form_name'] = array('#type' => 'hidden', '#value' => $export->formio_name);
+    $form['formio']['_id'] = array('#type' => 'hidden', '#value' => $export->_id);
+    $form['formio']['name'] = array('#type' => 'hidden', '#value' => $export->name);
   }
 
   $form['formio']['enable'] = array(
@@ -440,7 +447,7 @@ function formio_load_drupal_forms() {
     ->fields('ff')
     ->condition('ff.action', 'drupal')
     ->execute()
-    ->fetchAllAssoc('name');
+    ->fetchAllAssoc('title');
 
   return $forms;
 }
@@ -451,13 +458,13 @@ function formio_load_drupal_forms() {
 function formio_resource_plugin_alter(&$definitions) {
   $forms = formio_load_drupal_forms();
 
-  foreach($forms as $name => $form) {
-    $drupal_name = $form->machine_name;
-    $definitions[$drupal_name . ':1.0'] = array(
-      'name' => $drupal_name . ':1.0',
-      'resource' => $drupal_name,
-      'label' => $name,
-      'description' => 'Restful endpoints for ' . $name,
+  foreach($forms as $title => $form) {
+    $machine_name = $form->machine_name;
+    $definitions[$machine_name . ':1.0'] = array(
+      'name' => $machine_name . ':1.0',
+      'resource' => $machine_name,
+      'label' => $title,
+      'description' => 'Restful endpoints for ' . $title,
       'authenticationTypes' => TRUE,
       'authenticationOptional' => FALSE,
       'discoverable' => TRUE,
@@ -465,7 +472,7 @@ function formio_resource_plugin_alter(&$definitions) {
       'dataProvider' => array(
         'entityType' => 'formio',
         'bundles' => array(
-          $drupal_name,
+          $machine_name,
         ),
       ),
       'majorVersion' => FORMIO_API_MAJOR,
