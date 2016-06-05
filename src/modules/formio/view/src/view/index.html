@@ -222,26 +222,15 @@
 
         // Bind to the submission of the form.
         if (query.action) {
-          var prevent = true;
-          var headerKey = '';
-          if (query.api) {
-            headerKey = 'x-token';
-            prevent = false;
-          }
-          else {
-            headerKey = 'X-CSRF-Token';
-          }
           $rootScope.$on('formSubmit', function (event, submission) {
-            if (prevent) {
-              event.preventDefault();
-            }
+            event.preventDefault();
             if (!submission) {
               return;
             }
 
             $http.post(query.action, submission, {
               headers: {
-                [headerKey]: token
+                'X-CSRF-Token': token
               }
             }).success(function (submission) {
               Formio.clearCache();
