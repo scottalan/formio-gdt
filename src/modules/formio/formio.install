@@ -28,7 +28,7 @@ function formio_schema_1() {
     'export' => array(
       'key' => 'machine_name',
       'key name' => 'Unique Name',
-      'admin_title' => 'title',
+      'admin_title' => 'drupal_title',
       'primary key' => 'fid',
       'identifier' => 'formio',
       'default hook' => 'formio_form',
