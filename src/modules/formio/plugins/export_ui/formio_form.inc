@@ -83,7 +83,7 @@ function formio_form_edit_form(&$form, &$form_state) {
       $options[$formio_form['_id']] = $formio_form['title'];
     }
 
-    $form['info']['title'] = array(
+    $form['info']['drupal_title'] = array(
       '#type' => 'textfield',
       '#title' => t('Administrative title'),
       '#description' => t('The name of this form.'),
@@ -225,7 +225,8 @@ function formio_form_edit_form_submit(&$form, &$form_state) {
   // Get form and fill in additional form details.
   $formio_form = formio_get_form($item->_id);
   $item->name = $formio_form['name'];
-  $item->drupal_title = $form_state['values']['title'];
+  $item->drupal_title = $form_state['values']['drupal_title'];
+  // Set this title to the title of the form.io form.
   $item->title = $formio_form['title'];
   $item->path = $formio_form['path'];
   $item->type = $formio_form['type'];
@@ -245,8 +246,10 @@ function formio_form_edit_form_submit(&$form, &$form_state) {
   // Retrieve all components from the form.
   $components = formio_flatten_components($formio_form['components']);
   foreach($components as $component) {
-    // Add a new field for each of the components.
-    formio_add_field($item->machine_name, $component);
+    // Add a new field for each of the components. Ignore 'buttons'.
+    if ($component['type'] !== 'button') {
+      formio_add_field($item->machine_name, $component);
+    }
   }
 
   // Clear ctools object-cache.
@@ -273,11 +276,6 @@ function formio_add_field($bundle, $component) {
   // The type of component.
   $type = $component['type'];
   $label = $component['label'];
-
-  // Ignore buttons.
-  if ($type == 'button') {
-    return;
-  }
 
   // See if we have defined a field or field_instance for this component.
   $field = field_info_field($key);
