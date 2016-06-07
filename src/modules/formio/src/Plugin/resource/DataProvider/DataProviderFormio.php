@@ -13,7 +13,7 @@ class DataProviderFormio extends DataProviderEntity implements DataProviderInter
       return;
     }
     ctools_include('export');
-    $export = ctools_export_crud_load('formio_form', $formio->form);
+    $export = ctools_export_crud_load('formio_form', $formio->instance);
 
     $formio->_id = $export->_id;
     $formio->name = $export->name;

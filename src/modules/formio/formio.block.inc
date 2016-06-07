@@ -47,9 +47,9 @@ function formio_block_save($delta = '', $edit = array()) {
  */
 function formio_block_view($delta = '') {
   if (formio_block($delta)) {
-    list(, $name) = explode(':', $delta);
+    list(, $machine_name) = explode(':', $delta);
     ctools_include('export');
-    $export = (array) ctools_export_crud_load('formio_form', $name);
+    $export = (array) ctools_export_crud_load('formio_form', $machine_name);
     $export['is_new'] = FALSE;
     $block = formio_render($export);
 

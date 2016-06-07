@@ -89,6 +89,8 @@ function formio_formio_form_content_type_render($subtype, $conf, $args, $context
     }
     else {
       $form = $conf;
+      $form['theme'] = NULL;
+      $form['enable'] = 0;
     }
   }
 

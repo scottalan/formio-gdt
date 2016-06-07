@@ -10,6 +10,11 @@ $plugin = array(
   // Define a permission users must have to access these pages.
   'access' => 'administer formio',
 
+  'handler' => array(
+    'class' => 'FormioForm',
+    'parent' => 'ctools_export_ui',
+  ),
+
   // Define the menu item.
   'menu' => array(
     // The 'menu prefix' and 'menu item' create the base path. The default path
@@ -31,16 +36,14 @@ $plugin = array(
   'form' => array(
     'settings' => 'formio_form_edit_form',
     'validate' => 'formio_form_edit_form_validate',
-    'submit' => 'formio_form_edit_form_submit'
+    'submit' => 'formio_form_edit_form_submit',
   ),
 
   'add_form' => t('!message', array('!message' => l('Add a new form!', 'admin/structure/formio/add'))),
   'need_key' => t('Looks like you need an API Key. Enter one !here or visit !formio to create one now.', array('!here' => l('Here', 'admin/config/formio/settings'), '!formio' => l('Form.io', 'https://form.io'))),
 
   'strings' => array(
-    'message' => array(
-
-    ),
+    'message' => array(),
   ),
 );
 
@@ -68,9 +71,6 @@ function formio_form_edit_form(&$form, &$form_state) {
   // Need to include this file.
   ctools_form_include($form_state, 'formio_form', 'formio', 'plugins/export_ui');
 
-  // Re-write the default admin info.
-  $form['info'] = array();
-
   $formio_forms = formio_get_formio_forms();
 
   if (!empty($formio_forms)) {
@@ -82,6 +82,9 @@ function formio_form_edit_form(&$form, &$form_state) {
     foreach ($formio_forms as $formio_form) {
       $options[$formio_form['_id']] = $formio_form['title'];
     }
+
+    // Remove clutter.
+    unset($formio_form);
 
     $form['info']['drupal_title'] = array(
       '#type' => 'textfield',
@@ -96,7 +99,7 @@ function formio_form_edit_form(&$form, &$form_state) {
       '#title' => t('Machine name'),
       '#machine_name' => array(
         'exists' => 'formio_form_name_exists',
-        'source' => array('drupal_title'),
+        'source' => array('info', $form_state['plugin']['export']['admin_title']),
       ),
       '#description' => t('The machine readable name of this form. It must be unique, and it must contain only alphanumeric characters and underscores. Once created, you will not be able to change this value!'),
       '#default_value' => isset($item->machine_name) ? $item->machine_name : '',
@@ -169,8 +172,35 @@ function formio_form_edit_form(&$form, &$form_state) {
 
     $form['action_settings']['redirect'] = array(
       '#title' => t('Redirect on submission'),
+      '#description' => t('If the url is external include the schema. e.g., http://'),
       '#type' => 'textfield',
       '#default_value' => (!empty($item->action_settings) && isset($item->action_settings['redirect'])) ? $item->action_settings['redirect'] : '',
+    );
+
+    $formio = isset($item->_id) ? formio_get_form($item->_id) : NULL;
+    // Extra elements that need values.
+    foreach (array('title', 'name', 'path', 'type', 'components') as $key) {
+      $form[$key] = array(
+        '#type' => 'value',
+        '#value' => isset($formio, $formio[$key]) ? $formio[$key] : NULL,
+      );
+    }
+
+    $form['fid'] = array(
+      '#type' => 'value',
+      '#value' => isset($item->fid) ? $item->fid : NULL,
+    );
+
+    // Get the created timestamp from the formio.form.
+    $form['created'] = array(
+      '#type' => 'value',
+      '#value' => isset($formio['created']) ? (new DateTime($formio['created']))->getTimestamp() : NULL,
+    );
+
+    // Get the modified/changed timestamp from the formio form.
+    $form['changed'] = array(
+      '#type' => 'hidden',
+      '#default_value' => isset($formio['modified']) ? (new DateTime($formio['modified']))->getTimestamp() : NULL,
     );
 
     // Make sure that whatever happens, the buttons go to the bottom.
@@ -196,10 +226,19 @@ function formio_form_edit_form(&$form, &$form_state) {
 /**
  * Implements formio_form_edit_form().
  *
- * @todo: Prevent duplicate forms
+ * @todo: Prevent duplicate forms. Is this still an issue?.
  */
 function formio_form_edit_form_validate(&$form, &$form_state) {
-
+  if (!empty($form_state['values']['redirect'])) {
+    $path = $form_state['values']['redirect'];
+    $parsed = parse_url($path);
+    $item = menu_get_item($path);
+    // If this path does not contain a schema and it's not internal set a
+    // form error.
+    if (!$item && !isset($parsed['scheme'])) {
+      form_set_error('redirect', t('You must include a scheme for external paths. e.g., "http(s)://"'));
+    }
+  }
 }
 
 /**
@@ -207,32 +246,12 @@ function formio_form_edit_form_validate(&$form, &$form_state) {
  */
 function formio_form_edit_form_submit(&$form, &$form_state) {
   $item = &$form_state['item'];
-  // Get Drupal title and machine_name.
-  foreach (element_children($form_state['complete form']['info']) as $key) {
-    $item->{$key} = $form_state['values'][$key];
-  }
-  // Get values for the form.
-  foreach (element_children($form_state['complete form']['formio_form']) as $key) {
-    $item->{$key} = $form_state['values'][$key];
-  }
+  $formio_form = formio_get_form($item->_id);
+
   // Get values for the action settings.
   foreach (element_children($form_state['complete form']['action_settings']) as $key) {
-    $item->action_settings[$key] = $form_state['values'][$key];
+    $form_state['values']['action_settings'][$key] = $form_state['values'][$key];
   }
-
-
-  $item->_id = $form_state['values']['_id'];
-  // Get form and fill in additional form details.
-  $formio_form = formio_get_form($item->_id);
-  $item->name = $formio_form['name'];
-  $item->drupal_title = $form_state['values']['drupal_title'];
-  // Set this title to the title of the form.io form.
-  $item->title = $formio_form['title'];
-  $item->path = $formio_form['path'];
-  $item->type = $formio_form['type'];
-  $item->components = $formio_form['components'];
-  $item->created = (new DateTime($formio_form['created']))->getTimestamp();
-  $item->changed = (new DateTime($formio_form['modified']))->getTimestamp();
 
   // Build the data field component.
   $data = array(

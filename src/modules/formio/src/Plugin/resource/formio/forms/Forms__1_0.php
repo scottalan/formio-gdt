@@ -27,7 +27,7 @@ class Forms__1_0 extends ResourceEntity implements ResourceInterface{
       );
     }
 
-    $public_fields['_id'] = array('property' => 'form_id');
+    $public_fields['_id'] = array('property' => '_id');
     unset($public_fields['label']);
 
     return $public_fields;

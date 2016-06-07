@@ -134,6 +134,9 @@ function formio_entity_info() {
       'base table' => 'formio_form',
       'fieldable' => FALSE,
       'module' => 'formio',
+      'entity keys' => array(
+        'id' => 'fid',
+      ),
     )
   );
 
@@ -253,7 +256,8 @@ function formio_preprocess_formio_form(&$vars) {
   $token = restful_csrf_session_token();
   $token = array_shift($token);
   $url = variable_get('restful_hook_menu_base_path', 'api') . '/v' . FORMIO_API_MAJOR . '.' . FORMIO_API_MINOR . '/' . $form['machine_name'];
-  $callback = url($url, array('absolute' => TRUE));
+  // If a preset export is being created then we won't have a machine_name yet.
+  $callback = isset($form['machine_name']) ? url($url, array('absolute' => TRUE)) : '';
 
   // Set the callback.
   $vars['callback'] = $callback;
@@ -447,7 +451,7 @@ function formio_load_drupal_forms() {
     ->fields('ff')
     ->condition('ff.action', 'drupal')
     ->execute()
-    ->fetchAllAssoc('title');
+    ->fetchAllAssoc('drupal_title');
 
   return $forms;
 }
@@ -525,6 +529,8 @@ function formio_preview_ajax_callback($form, $form_state, $is_new = TRUE) {
  */
 function formio_form_alter(&$form, &$form_state, $form_id) {
   if ($form_id === 'block_admin_configure' && strpos($form['delta']['#value'], 'formio:') !== FALSE) {
+
+    // ctools_export_ui_edit_item_form
 
     // Add the ajax callback for the preview. We want to trigger a preview
     // when the checkbox is selected and also when the theme is changed.
