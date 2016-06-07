@@ -228,7 +228,7 @@ function formio_render(array $conf) {
   ctools_include('content');
   $renderer = ctools_content_render($type, $subtype, $conf, $keywords, $args, $contexts, 'hello');
 
-  // Add formio libraries.
+  // Include the seamless library.
   drupal_add_library('formio', 'seamless');
 
   // Render the html in the Formio fieldset. @todo: Fix this render
@@ -241,11 +241,19 @@ function formio_render(array $conf) {
 function formio_preprocess_formio_form(&$vars) {
   $form = &$vars['form'];
 
+  // @todo: Find where we can just load the export here and minimize setting
+  // duplicate values elsewhere.
+  //
+  // Load the export to ensure we get all the proper settings for the form.
+  ctools_include('export');
+  $export = ctools_export_crud_load('formio_form', $form['machine_name']);
+
   // The form.io form _id and the name of the preset.
   $vars['formio_id'] = $form['_id'];
   $vars['formio_name'] = isset($form['name']) ? $form['name'] : 'new-preset';
 
-  $actions = $form['action_settings'];
+  $actions = $export->action_settings;
+
   if (!empty($actions)) {
     // Redirect on submission.
     if (isset($actions['redirect']) && !empty($actions['redirect'])) {
@@ -311,9 +319,10 @@ function formio_display_config_form(&$form, $conf) {
   // This is coming from a preset request.
   if (is_array($conf)) {
     $options = array();
+    $options['_none'] = t('Choose a form');
     // Build the options based on exports.
     foreach ($exports as $export) {
-      $options[$export->formio_name] = $export->formio_title;
+      $options[$export->machine_name] = $export->drupal_title;
     }
 
     $form['formio']['machine_name'] = array(
@@ -322,11 +331,21 @@ function formio_display_config_form(&$form, $conf) {
       '#options' => $options,
 //      '#default_value' => isset($conf['machine_name']) ? $conf['machine_name'] : variable_get($conf . ':machine_name', ''),
       '#default_value' => isset($conf['machine_name']) ? $conf['machine_name'] : '',
+      '#ajax' => array(
+        'callback' => 'formio_preview_ajax_callback',
+        'wrapper' => 'formio-form-render',
+        'path' => 'system/formio_ajax',
+        'method' => 'replace',
+      ),
+      '#attached' => array(
+        'library' => array(
+          array('formio', 'seamless'),
+        ),
+        'js' => array(
+          drupal_get_path('module', 'formio') . '/js/formio.js' => array(NULL, 'module'),
+        ),
+      ),
     );
-
-  }
-  // The $conf is empty if we are adding a new pane.
-  else if (is_array($conf) && empty($conf)) {
 
   }
   // This is a block making a request.
@@ -356,6 +375,11 @@ function formio_display_config_form(&$form, $conf) {
         ':input[name="enable"]' => array('checked' => FALSE),
       ),
     ),
+  );
+
+  $form['formio']['action_settings']['redirect'] = array(
+    '#type' => 'value',
+    '#value' => isset($export->action_settings['redirect']) ? $export->action_settings['redirect'] : '',
   );
 
   // Get possible Bootswatch themes from the Bootswatch api.
@@ -529,9 +553,7 @@ function formio_preview_ajax_callback($form, $form_state, $is_new = TRUE) {
  */
 function formio_form_alter(&$form, &$form_state, $form_id) {
   if ($form_id === 'block_admin_configure' && strpos($form['delta']['#value'], 'formio:') !== FALSE) {
-
-    // ctools_export_ui_edit_item_form
-
+    
     // Add the ajax callback for the preview. We want to trigger a preview
     // when the checkbox is selected and also when the theme is changed.
     $form['settings']['formio']['enable']['#ajax'] = $form['settings']['formio']['theme']['#ajax'] = array(

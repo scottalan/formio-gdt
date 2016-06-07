@@ -246,12 +246,29 @@ function formio_form_edit_form_validate(&$form, &$form_state) {
  */
 function formio_form_edit_form_submit(&$form, &$form_state) {
   $item = &$form_state['item'];
-  $formio_form = formio_get_form($item->_id);
+  // The form _id.
+  $_id = !empty($item->_id) ? $item->_id : $form_state['values']['_id'];
+  // The bundle for the entity.
+  $bundle = !empty($item->machine_name) ? $item->machine_name : $form_state['values']['machine_name'];
+  $formio_form = formio_get_form($_id);
 
   // Get values for the action settings.
   foreach (element_children($form_state['complete form']['action_settings']) as $key) {
     $form_state['values']['action_settings'][$key] = $form_state['values'][$key];
   }
+
+  $item->_id = $form_state['values']['_id'];
+  // Get form and fill in additional form details.
+  $formio_form = formio_get_form($item->_id);
+  $item->name = $formio_form['name'];
+  $item->drupal_title = $form_state['values']['drupal_title'];
+  // Set this title to the title of the form.io form.
+  $item->title = $formio_form['title'];
+  $item->path = $formio_form['path'];
+  $item->type = $formio_form['type'];
+  $item->components = $formio_form['components'];
+  $item->created = (new DateTime($formio_form['created']))->getTimestamp();
+  $item->changed = (new DateTime($formio_form['modified']))->getTimestamp();
 
   // Build the data field component.
   $data = array(
@@ -259,20 +276,21 @@ function formio_form_edit_form_submit(&$form, &$form_state) {
     'key' => 'data',
     'type' => 'serial'
   );
+
   // Add a data field to store raw json.
-  formio_add_field($item->machine_name, $data);
+  formio_add_field($bundle, $data);
 
   // Retrieve all components from the form.
   $components = formio_flatten_components($formio_form['components']);
   foreach($components as $component) {
     // Add a new field for each of the components. Ignore 'buttons'.
     if ($component['type'] !== 'button') {
-      formio_add_field($item->machine_name, $component);
+      formio_add_field($bundle, $component);
     }
   }
 
   // Clear ctools object-cache.
-  formio_clear_form_cache($item->machine_name);
+  formio_clear_form_cache($bundle);
 }
 
 /**

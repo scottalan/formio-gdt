@@ -143,24 +143,12 @@ function formio_schema_1() {
         'description' => 'Submission ID field for the table.',
         'no export' => TRUE, // Do not export database-only keys.
       ),
-      '_id' => array(
-        'type' => 'varchar',
-        'length' => 24,
-        'description' => 'The form.io _id of the form submission.',
-      ),
       'instance' => array(
         'type' => 'varchar',
         'length' => 255,
         'not null' => TRUE,
         'default' => '',
         'description' => 'The machine-readable name of the form in Drupal.',
-      ),
-      'name' => array(
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => TRUE,
-        'default' => '',
-        'description' => 'The form.io name of the form for this submission.',
       ),
       'owner' => array(
         'description' => 'The {users}.uid that owns this node; initially, this is the user that created it.',

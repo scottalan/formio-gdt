@@ -56,8 +56,9 @@ function formio_formio_form_content_type_edit_form_submit($form, &$form_state) {
  *   A render array.
  */
 function formio_formio_form_content_type_render($subtype, $conf, $args, $context, $incoming_content) {
+
   // This is a new export. We are still in the creation process.
-  if ($conf['is_new']) {
+  if (isset($conf['is_new']) && $conf['is_new'] && isset($conf['_id'])) {
     $form = array(
       '_id' => $conf['_id'],
       'action' => 'not_drupal',
@@ -133,10 +134,10 @@ function formio_form_content_type_add_headers() {
   );
 }
 
-function formio_form_content_type_setting_data($form_id) {
+function formio_form_content_type_setting_data($_id) {
   return array(
     'reload' => TRUE,
-    'form' => $form_id,
+    'form' => $_id,
     'api' => variable_get('formio_project_url', NULL),
     'target' => '#formio-form-render',
   );
