@@ -12,7 +12,7 @@ function formio_block_info() {
   $exports = formio_get_all_exports();
   foreach ($exports as $key => $export) {
     $blocks['formio:' . $key] = array(
-      'info' => t('!form_title', array('!form_title' => 'Formio: ' . $export->name)),
+      'info' => t('!form_title', array('!form_title' => 'Formio: ' . $export->drupal_title)),
       'cache' => DRUPAL_NO_CACHE,
     );
   }

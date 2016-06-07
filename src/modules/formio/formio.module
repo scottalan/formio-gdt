@@ -553,7 +553,7 @@ function formio_preview_ajax_callback($form, $form_state, $is_new = TRUE) {
  */
 function formio_form_alter(&$form, &$form_state, $form_id) {
   if ($form_id === 'block_admin_configure' && strpos($form['delta']['#value'], 'formio:') !== FALSE) {
-    
+
     // Add the ajax callback for the preview. We want to trigger a preview
     // when the checkbox is selected and also when the theme is changed.
     $form['settings']['formio']['enable']['#ajax'] = $form['settings']['formio']['theme']['#ajax'] = array(

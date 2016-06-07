@@ -291,6 +291,7 @@ function formio_form_edit_form_submit(&$form, &$form_state) {
 
   // Clear ctools object-cache.
   formio_clear_form_cache($bundle);
+  menu_rebuild();
 }
 
 /**
