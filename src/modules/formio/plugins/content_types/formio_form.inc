@@ -155,17 +155,14 @@ function formio_formio_form_content_type_edit_form_submit($form, &$form_state) {
  */
 function formio_formio_form_content_type_render($subtype, $conf, $args, $context, $incoming_content) {
 
-  if (isset($subtype)) {
+  if (isset($subtype) && !empty($subtype)) {
     $form = (array) formio_get_export($subtype);
     $diff = array_diff_key($conf, $form);
     $form += $diff;
   }
   // This is a new export. We are still in the creation process.
   else if (isset($conf['is_new']) && $conf['is_new'] && isset($conf['_id'])) {
-    $form = array(
-      '_id' => $conf['_id'],
-      'action' => 'not_drupal',
-    );
+    $form = formio_get_form($conf['_id']);
 
   }
   // We might be passing the export in as $conf. If we are then a components
@@ -203,9 +200,6 @@ function formio_formio_form_content_type_render($subtype, $conf, $args, $context
     '#form' => $form,
     '#attached' => array(
       'drupal_add_http_header' => formio_add_headers(),
-      'library' => array(
-        array('formio', 'seamless'),
-      ),
       // Add custom JavaScript.
       // @todo: Test this out instead of adding to info file.
 //      'js' => array(

@@ -63,6 +63,8 @@ function formio_form_display_form($form, &$form_state) {
 
 /**
  * Implements formio_form_edit_form().
+ *
+ * This is the edit form for exported presets.
  */
 function formio_form_edit_form(&$form, &$form_state) {
   // Add formio libraries.
@@ -85,6 +87,8 @@ function formio_form_edit_form(&$form, &$form_state) {
 
     // Remove clutter.
     unset($formio_form);
+
+    formio_preview_ajax_form($form);
 
     $form['info']['drupal_title'] = array(
       '#type' => 'textfield',
@@ -143,20 +147,6 @@ function formio_form_edit_form(&$form, &$form_state) {
       '#prefix' => '<div id="' . $id . '">',
       '#suffix' => '</div>',
       '#disabled' => $disabled,
-      '#ajax' => array(
-        'callback' => 'formio_ajax_update_preview',
-        'wrapper' => 'formio-form-render',
-        'path' => 'system/formio_ajax',
-        'method' => 'replace',
-      ),
-      '#attached' => array(
-        'library' => array(
-          array('formio', 'seamless'),
-        ),
-        'js' => array(
-          drupal_get_path('module', 'formio') . '/js/formio.js' => array(NULL, 'module'),
-        ),
-      ),
     );
 
     $actions = array(
@@ -169,6 +159,9 @@ function formio_form_edit_form(&$form, &$form_state) {
       '#options' => $actions,
       '#default_value' => isset($item->action) ? $item->action : 'drupal',
     );
+
+    $machine_name = isset($item->machine_name) ? $item->machine_name : '';
+    formio_theme_preview_form($form, 'formio_form', $machine_name);
 
     $form['action_settings']['redirect'] = array(
       '#title' => t('Redirect on submission'),
@@ -224,17 +217,16 @@ function formio_form_edit_form(&$form, &$form_state) {
       '#type' => 'button',
       '#value' => 'Render preview',
       '#weight' => -10,
+      '#access' => empty($form_state['item']->machine_name) ? FALSE : TRUE,
       '#ajax' => array(
-        'callback' => 'formio_ajax_update_preview',
-//        'wrapper' => 'formio-form-render',
+        'callback' => 'formio_render_preset_preview',
+        'wrapper' => 'formio-form-render',
         'path' => 'system/formio_ajax',
-//        'method' => 'replace',
+        'method' => 'replace',
       ),
     );
-    formio_form_post_render_preview('', $form, $machine_name);
   }
 
-//  formio_preview_ajax_form($form);
 }
 
 /**
