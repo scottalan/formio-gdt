@@ -395,8 +395,7 @@ function formio_add_headers() {
 /**
  * Use our own ajax callback for forms.
  *
- * We use this instead of what 'system/ajax' returns. This is just a modified
- * version of it. This allows adding an ajax callback in a class method.
+ * We use this instead of what 'system/ajax' returns so we can customize it.
  *
  * @see ajax_form_callback().
  *
@@ -667,7 +666,7 @@ function formio_form_alter(&$form, &$form_state, $form_id) {
   // configuration page.
   if ($form_id === 'ctools_export_ui_edit_item_form' || ($form_id === 'block_admin_configure' && strpos($form['delta']['#value'], 'formio:') !== FALSE)) {
 
-    $set = $form_id === 'block_admin_configure' ? 'formio_form' : 'buttons';
+    $set = ($form_id === 'block_admin_configure') ? 'formio_form' : 'buttons';
     drupal_add_library('formio', 'seamless');
     // Add a button to render the preview since it won't render on page load.
     $form[$set]['preview'] = array(
