@@ -304,14 +304,18 @@ function formio_render(array $conf) {
 function formio_preprocess_formio_form(&$vars) {
   $form = &$vars['form'];
 
-  (array) $form;
+  if (!isset($form)) {
+    return;
+  }
+
+  $form = (array) $form;
   // @todo: Find where we can just load the export here and minimize setting
   // duplicate values elsewhere.
   //
   // Load the export to ensure we get all the proper settings for the form.
   ctools_include('export');
   $export = ctools_export_crud_load('formio_form', $form['machine_name']);
-  
+
   // The form.io form _id and the name of the preset.
   $vars['formio_id'] = $form['_id'];
   $vars['formio_name'] = isset($form['name']) ? $form['name'] : 'new-preset';
@@ -515,8 +519,8 @@ function formio_ajax_form_callback() {
       're_render' => FALSE,
       'no_redirect' => !empty($form_state['ajax']),
     );
-    drupal_build_form($form_id, $form_state);
-//    drupal_process_form($form_id, $form, $form_state);
+//    drupal_build_form($form_id, $form_state);
+    drupal_process_form($form_id, $form, $form_state);
 //    $form = drupal_build_form($form_state['build_info']['form_id'], $form_state);
   }
   else {
@@ -683,7 +687,7 @@ function formio_form_post_render_preview($output, $form, $machine_name = NULL) {
   // Build the form render array.
   $content = array(
     '#theme' => 'formio_form',
-    '#form' => $export,
+    '#form' => $formio,
     '#attached' => array(
       'drupal_add_http_header' => formio_add_headers(),
     ),
