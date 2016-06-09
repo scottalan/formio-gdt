@@ -6,6 +6,7 @@ configure = admin/config/formio/settings
 dependencies[] = ctools
 dependencies[] = entity
 dependencies[] = restful
+scripts[] = js/formio.js
 files[] = includes/formio.inc
 
 registry_autoload[] = PSR-0

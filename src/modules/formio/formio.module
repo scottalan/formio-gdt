@@ -12,6 +12,52 @@ define('FORMIO_API_MAJOR', 1);
 define('FORMIO_API_MINOR', 0);
 
 /**
+ * Implements hook_init()
+ */
+function formio_init() {
+  // Override ctools Modal default settings.
+//  $modal_style = array(
+//    'CToolsModal' => array(
+//      'modalSize' => array(
+//        'type' => 'scale',
+//        'width' => '.9',
+//        'height' => '.9',
+//        'addWidth' => 0,
+//        'addHeight' => 0,
+//        'contentRight' => 25,
+//        'contentBottom' => 75,
+//      ),
+//      'modalOptions' => array(
+//        'opacity' => '.55',
+//        'background-color' => '#FFF',
+//      ),
+//      'animationSpeed' => 'fast',
+//      'modalTheme' => 'CToolsModalDialog',
+//      'throbberTheme' => 'CToolsModalThrobber',
+//    ),
+//  );
+//  // Allow modules to alter the modal style.
+//  drupal_alter('formio_modal_style', $modal_style);
+//  // Add the modal style.
+//  drupal_add_js($modal_style, 'setting');
+//  // Add the preview mode.
+//  drupal_add_js(array('formioPreview' => array(
+//    'pane_add_preview_mode' => 'single',
+//  )), 'setting');
+}
+
+/**
+ * Implements hook_module_implements_alter()
+ */
+function formio_module_implements_alter(&$implementations, $hook) {
+  if ($hook == 'form_alter') {
+    $group = $implementations['formio'];
+    unset($implementations['formio']);
+    $implementations['formio'] = $group;
+  }
+}
+
+/**
  * Implements hook_ctools_plugin_api().
  *
  * Tell CTools that we support the formio API.
@@ -66,6 +112,13 @@ function formio_library() {
         'group' => JS_THEME,
         'weight' => -1,
       ),
+      // @todo: Change this back!!!!!!!!
+//      'https://cdn.rawgit.com/travist/seamless.js/master/build/seamless.parent.js' => array(
+//        'type' => 'external',
+//        'group' => JS_THEME,
+////        'group' => JS_LIBRARY,
+//        'weight' => -100,
+//      ),
     ),
   );
   return $libraries;
@@ -101,6 +154,31 @@ function formio_menu() {
   formio_admin_menu_hook($items);
 
   return $items;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function formio_theme($existing, $type, $theme, $path) {
+  $path .= '/theme';
+  return array(
+    'formio_preview' => array(
+      'variables' => array(
+        'title' => NULL,
+        'add_link' => NULL,
+        'preview' => NULL,
+        'single' => TRUE,
+      ),
+      'path' => $path,
+      'template' => 'formio-preview',
+    ),
+    'formio_preview_link' => array(
+      'variables' => array(
+        'preview_link' => NULL,
+        'add_link' => NULL
+      ),
+    ),
+  );
 }
 
 /*
@@ -193,23 +271,6 @@ function formio_get_export_by_fid($fid) {
 }
 
 /**
- * Implements hook_block_view_alter().
- *
- * In formio_block_view() we use the delta to load the exported form. Then it's
- * passed to formio_render() to be fully rendered. We hook in here since we
- * know that the '$array' will actually be a string. Since it is, block moves
- * on and checks to see if $block->content is set. If it happens to be a string
- * then it just sets the content as: array('#markup' => $block->content).
- */
-function formio_block_view_alter(&$array, $block) {
-  if (strpos($block->delta, 'formio:') !== FALSE) {
-    if (is_string($array)) {
-      $block->content = $array;
-    }
-  }
-}
-
-/**
  * Render a formio form.
  *
  * @param array $conf
@@ -221,14 +282,16 @@ function formio_render(array $conf) {
 
   // Params needed for ctools. Building them out so we know what they are.
   $type = 'formio_form';
-  $subtype = 'formio_form';
+  $subtype = $conf['machine_name'];
   $args = array();
   $keywords = $contexts = array();
 
   ctools_include('content');
   $renderer = ctools_content_render($type, $subtype, $conf, $keywords, $args, $contexts, 'hello');
 
-  // Include the seamless library.
+  // Called second on blocks.
+
+  // Include the seamless library. THIS HAS TO BE HERE.
   drupal_add_library('formio', 'seamless');
 
   // Render the html in the Formio fieldset. @todo: Fix this render
@@ -241,13 +304,14 @@ function formio_render(array $conf) {
 function formio_preprocess_formio_form(&$vars) {
   $form = &$vars['form'];
 
+  (array) $form;
   // @todo: Find where we can just load the export here and minimize setting
   // duplicate values elsewhere.
   //
   // Load the export to ensure we get all the proper settings for the form.
   ctools_include('export');
   $export = ctools_export_crud_load('formio_form', $form['machine_name']);
-
+  
   // The form.io form _id and the name of the preset.
   $vars['formio_id'] = $form['_id'];
   $vars['formio_name'] = isset($form['name']) ? $form['name'] : 'new-preset';
@@ -278,9 +342,6 @@ function formio_preprocess_formio_form(&$vars) {
 
   // Path to the formio module.
   $vars['module_path'] = drupal_get_path('module', 'formio');
-
-  // The name of the form.
-  $vars['name'] = $vars['formio_name'] != 'new-preset' ? '&name=' . $vars['formio_name'] : '';
 
   // The Bootswatch theme, if there is one.
   $vars['theme'] = isset($form['enable']) ? '&theme=' . $form['theme'] : '';
@@ -332,7 +393,7 @@ function formio_display_config_form(&$form, $conf) {
 //      '#default_value' => isset($conf['machine_name']) ? $conf['machine_name'] : variable_get($conf . ':machine_name', ''),
       '#default_value' => isset($conf['machine_name']) ? $conf['machine_name'] : '',
       '#ajax' => array(
-        'callback' => 'formio_preview_ajax_callback',
+        'callback' => 'formio_ajax_update_preview',
         'wrapper' => 'formio-form-render',
         'path' => 'system/formio_ajax',
         'method' => 'replace',
@@ -350,13 +411,9 @@ function formio_display_config_form(&$form, $conf) {
   }
   // This is a block making a request.
   else {
-    // The machine_name of the form.
-    list(, $machine_name) = explode(':', $conf);
-
     // Grab the export.
-    $export = $exports[$machine_name];
-
-    $form['formio']['machine_name'] = array('#type' => 'hidden', '#value' => $machine_name);
+    $export = $exports[$conf];
+    $form['formio']['machine_name'] = array('#type' => 'hidden', '#value' => $conf);
     $form['formio']['_id'] = array('#type' => 'hidden', '#value' => $export->_id);
     $form['formio']['name'] = array('#type' => 'hidden', '#value' => $export->name);
   }
@@ -364,12 +421,12 @@ function formio_display_config_form(&$form, $conf) {
   $form['formio']['enable'] = array(
     '#type' => 'checkbox',
     '#title' => t('Use bootswatch'),
-    '#default_value' => is_array($conf) ? $conf['enable'] : variable_get($conf . ':use_bootswatch', ''),
+    '#default_value' => is_array($conf) ? $conf['enable'] : variable_get('formio:' . $conf . ':enable', ''),
   );
 
   $form['formio']['theme'] = array(
     '#title' => t('Bootswatch Theme'),
-    '#default_value' => is_array($conf) ? $conf['theme'] : variable_get($conf . ':bootswatch_theme', ''),
+    '#default_value' => is_array($conf) ? $conf['theme'] : variable_get('formio:' . $conf . ':theme', ''),
     '#states' => array(
       'invisible' => array(
         ':input[name="enable"]' => array('checked' => FALSE),
@@ -420,6 +477,24 @@ function formio_bootswatch() {
 }
 
 /**
+ * Attaching headers to the render array.
+ *
+ * @return array
+ *   An array of headers.
+ */
+function formio_add_headers() {
+  $apiKey = formio_apikey();
+  if (empty($apiKey)) {
+    throw new Exception('You must have an api key to continue.');
+  }
+  return array(
+    array('x-token', $apiKey),
+    array('Accept', 'application/json'),
+    array('Access-Control-Request-Method', 'POST, GET, OPTIONS'),
+  );
+}
+
+/**
  * Use our own ajax callback for forms.
  *
  * We use this instead of what 'system/ajax' returns. This is just a modified
@@ -430,39 +505,610 @@ function formio_bootswatch() {
  * @return array|mixed
  */
 function formio_ajax_form_callback() {
-  $result = '';
+//  $result = '';
   list($form, $form_state, $form_id, $form_build_id, $commands) = ajax_get_form();
-  drupal_process_form($form['#form_id'], $form, $form_state);
+  ctools_include('content');
+  ctools_include('modal');
+
+  if (isset($form_state['no_redirect']) && !isset($form_state['form_info'])) {
+    $form_state += array(
+      're_render' => FALSE,
+      'no_redirect' => !empty($form_state['ajax']),
+    );
+    drupal_build_form($form_id, $form_state);
+//    drupal_process_form($form_id, $form, $form_state);
+//    $form = drupal_build_form($form_state['build_info']['form_id'], $form_state);
+  }
+  else {
+    // These ensure the class files/form definations are included.
+    $content_type = ctools_get_content_type($form_state['pane']->type);
+    $subtype = ctools_content_get_subtype($content_type, $form_state['subtype_name']);
+
+    $form = ctools_content_form($form_state['op'], $form_state['form_info'], $form_state, $form_state['plugin'], $form_state['subtype_name'], $form_state['conf'], $form_state['step']);
+  }
+
   if (!empty($form_state['triggering_element'])) {
     $callback = $form_state['triggering_element']['#ajax']['callback'];
   }
-  if (isset($callback) && is_array($callback)) {
-    $object = array_shift($callback);
-    $function = array_shift($callback);
+//  if (isset($callback) && is_array($callback)) {
+//    $object = array_shift($callback);
+//    $function = array_shift($callback);
+//
+//    if (method_exists($object, $function)) {
+//      $class = get_class($object);
+//      $result = call_user_func(array($class, $function), $form, $form_state);
+//    }
+//
+//  }
+  if (!empty($callback) && function_exists($callback)) {
+    return $callback($form, $form_state);
+  }
 
-    if (method_exists($object, $function)) {
-      $class = get_class($object);
-      $result = call_user_func(array($class, $function), $form, $form_state);
+
+
+//  drupal_process_form($form['#form_id'], $form, $form_state);
+//  if (!empty($form_state['triggering_element'])) {
+//    $callback = $form_state['triggering_element']['#ajax']['callback'];
+//  }
+//  if (isset($callback) && is_array($callback)) {
+//    $object = array_shift($callback);
+//    $function = array_shift($callback);
+//
+//    if (method_exists($object, $function)) {
+//      $class = get_class($object);
+//      $result = call_user_func(array($class, $function), $form, $form_state);
+//    }
+//
+//  }
+//  else {
+//    if (!empty($callback) && function_exists($callback)) {
+//      $result = $callback($form, $form_state);
+//    }
+//  }
+//
+//  if (!(is_array($result) && isset($result['#type']) && $result['#type'] == 'ajax')) {
+//    // Turn the response into a #type=ajax array if it isn't one already.
+//    $result = array(
+//      '#type' => 'ajax',
+//      '#commands' => ajax_prepare_response($result),
+//    );
+//  }
+//
+//  $result['#commands'] = array_merge($commands, $result['#commands']);
+//
+//  return $result;
+}
+
+/**
+ * Ajax callback to render a preview of the form.
+ *
+ * Renders the Form IO form that is selected.
+ *
+ * @param array $form
+ *   Form that triggered the callback.
+ * @param array $form_state
+ *   State of the form.
+ * @param bool $is_new
+ *   Lets us know if this is being called on a new export form.
+ *
+ * @return array
+ *   Ajax commands.
+ */
+//function formio_ajax_update_preview($form, $form_state, $is_new = TRUE) {
+//  $commands = array();
+//  $conf = $form_state['values'];
+//  $conf['is_new'] = ($form['#form_id'] === 'block_admin_configure') ? FALSE : $is_new;
+//  $commands[] = ajax_command_html('#formio-form-render', formio_render($conf));
+//
+//  // Return commands to the system to be executed.
+//  return array('#type' => 'ajax', '#commands' => $commands);
+//}
+
+/**
+ * Ajax callback that just returns the rendered preview.
+ */
+function formio_ajax_update_preview($form, $form_state, $is_new = TRUE) {
+  if ($form['#form_id'] === 'block_admin_configure') {
+    $commands = array();
+    $conf = $form_state['values'];
+    if (!isset($conf)) {
+      list(, $machine_name) = explode(':', $form['delta']['#value']);
+      $conf['machine_name'] = $machine_name;
     }
+    $conf['is_new'] = ($form['#form_id'] === 'block_admin_configure') ? FALSE : $is_new;
+    $commands[] = ajax_command_html('#formio-form-render', formio_render($conf));
 
+  // Return commands to the system to be executed.
+  return array('#type' => 'ajax', '#commands' => $commands);
   }
   else {
-    if (!empty($callback) && function_exists($callback)) {
-      $result = $callback($form, $form_state);
+    if (isset($form_state['values']) && isset($form['#formio_preview_info']['configuration'])) {
+      $form['#formio_preview_info']['configuration'] = $form_state['values'] + $form['#formio_preview_info']['configuration'];
+    }
+    return formio_form_post_render_preview('', $form);
+  }
+}
+
+/**
+ * Helper function to display the pane for showing previews in the add_content modal
+ */
+function _formio_render_preview_pane(&$plugin, $renderer) {
+  $pane = panels_new_pane($plugin['type_name'], $plugin['subtype_name'], TRUE);
+  $display = $renderer->display;
+  $context = $renderer->display->context;
+  $args = $renderer->display->args;
+  $incoming_content = $renderer->display->incoming_content;
+  $keywords = (!empty($renderer->display->keywords)) ? $renderer->display->keywords : array();
+  if ($content = ctools_content_render($pane->type, $pane->subtype, $pane->configuration, $keywords, $args, $context, $incoming_content)) {
+    $plugin['preview'] = theme('panels_pane', array('content' => $content, 'pane' => $pane, 'display' => $display));
+//    $plugin['preview'] = theme('formio_form', array('content' => $content->content, 'pane' => $pane, 'display' => $display));
+    drupal_add_library('formio', 'seamless');
+    // Add preview information.
+    drupal_add_js(array('formioPreview' => array(
+      'pane_add_preview_type' => $pane->type,
+      'pane_add_preview_subtype' => $pane->subtype,
+    )), 'setting');
+  }
+}
+
+/**
+ * Add the preview to the form output.
+ *
+ * It is done here so the form is fully processed. All this does is generate
+ * a preview of a Form.io form.
+ */
+function formio_form_post_render_preview($output, $form, $machine_name = NULL) {
+  if (isset($_POST['ajax_html_ids'])) {
+//    unset($_POST['ajax_html_ids']);
+  }
+
+  if (!isset($machine_name)) {
+    if (isset($form['#formio_preview_info'])) {
+      // Extract all the elements from the array.
+      extract($form['#formio_preview_info']);
+      $subtype = $pane->subtype;
+    }
+    else {
+      $subtype = $form['info']['machine_name']['#value'];
     }
   }
-
-  if (!(is_array($result) && isset($result['#type']) && $result['#type'] == 'ajax')) {
-    // Turn the response into a #type=ajax array if it isn't one already.
-    $result = array(
-      '#type' => 'ajax',
-      '#commands' => ajax_prepare_response($result),
-    );
+  else {
+    $subtype = $machine_name;
   }
 
-  $result['#commands'] = array_merge($commands, $result['#commands']);
+  // We get $pane from the extraction above.
+  $export = formio_get_export($subtype);
+  // Make a call to get the Form.io form.
+  $formio = formio_get_form($export->_id);
+  // Build the form render array.
+  $content = array(
+    '#theme' => 'formio_form',
+    '#form' => $export,
+    '#attached' => array(
+      'drupal_add_http_header' => formio_add_headers(),
+    ),
+  );
 
-  return $result;
+  if (!empty($content)) {
+    $content = render($content);
+  }
+  else {
+    $content = t('[no preview]');
+  }
+
+  $render = array(
+    'title' => t('Preview'),
+    'preview' => $content,
+    'single' => TRUE,
+    '#attached' => array(
+      'drupal_add_http_header' => formio_add_headers(),
+    ),
+  );
+  // Render the preview.
+  return theme('formio_preview', $render) . $output;
+}
+
+/**
+ * Preprocess the panels_add_content_modal() function to add the HTML for the preview
+ */
+function formio_preprocess_panels_add_content_modal(&$vars) {
+  // Generate the pane preview
+  $category = 'form-io';
+  if ($vars['category'] === $category && !empty($vars['categories'][$category])) {
+
+    if (!empty($vars['categories'][$category]['content'])) {
+//      foreach ($vars['categories'][$category]['content'] as $title => $plugin) {
+//        _formio_render_preview_pane($plugin, $vars['renderer']);
+//        $vars['column_count'] = 1;
+//        $vars['preview_single'] = isset($plugin['preview']) ? $plugin['preview'] : '';
+//        $vars['preview_single_title'] = $vars['categories'][$category]['title'];
+//
+//        // Convert the link to generate a preview of itself.
+//        $options = array(
+//          'query' => array(
+//            'type_name' => $plugin['type_name'],
+//            'subtype_name' => $plugin['subtype_name'],
+//          ),
+//          'attributes' => array('class' => array('use-ajax button')),
+//          'html' => TRUE,
+//        );
+//        $plugin['title'] = l(filter_xss_admin($plugin['title']), current_path(), $options);
+//      }
+    }
+
+//    $query = drupal_get_query_parameters();
+//    $preview_panes = (!empty($query['preview_panes'])) ? explode(',', $query['preview_panes']) : array();
+
+    // Process each widget option, either adding the preview itself or a link to generate it.
+//    foreach ($vars['categories'][$vars['category']]['content'] as $key => &$plugin) {
+//      $query = drupal_get_query_parameters();
+//      $preview_panes = (!empty($query['preview_panes'])) ? explode(',', $query['preview_panes']) : array();
+//
+//
+//      // Convert the link to generate a preview of itself.
+//      $options = array(
+//        'query' => array(
+//          'type_name' => $plugin['type_name'],
+//          'subtype_name' => $plugin['subtype_name'],
+//        ),
+//        'attributes' => array('class' => array('use-ajax button')),
+//        'html' => TRUE,
+//      );
+//      $plugin['title'] = l(filter_xss_admin($plugin['title']), current_path(), $options);
+//    }
+  }
+}
+
+/**
+ * Helper function to render the Panels add content link.
+ */
+function _formio_render_add_content_link($vars, $content_type, $title) {
+  $content_type['title'] = t('Add');
+  // @todo: Investigate why view_panes are missing description.
+  if (empty($content_type['description'])) {
+    $content_type['description'] = $title;
+  }
+
+  return theme('panels_add_content_link', array(
+    'renderer' => $vars['renderer'],
+    'region' => $vars['region'],
+    'content_type' => $content_type,
+  ));
+}
+
+/**
+ * Implements hook_block_view_alter().
+ *
+ * In formio_block_view() we use the delta to load the exported form. Then it's
+ * passed to formio_render() to be fully rendered. We hook in here since we
+ * know that the '$array' will actually be a string. Since it is, block moves
+ * on and checks to see if $block->content is set. If it happens to be a string
+ * then it just sets the content as: array('#markup' => $block->content).
+ */
+function formio_block_view_alter(&$array, $block) {
+  if (strpos($block->delta, 'formio:') !== FALSE) {
+//    $block->subject = '';
+//    $block->content = $array['content'];
+    if (is_string($array)) {
+//      $block->content = $array;
+    }
+  }
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function formio_form_alter(&$form, &$form_state, $form_id) {
+  // This will add the ajax and attached elements to the form on the block
+  // configuration page.
+  if ($form_id === 'ctools_export_ui_edit_item_form' || ($form_id === 'block_admin_configure' && strpos($form['delta']['#value'], 'formio:') !== FALSE)) {
+    drupal_add_library('formio', 'seamless');
+
+//    drupal_add_library('formio', 'seamless');
+    // Add a button to render the preview since it won't render on page load.
+    $form['buttons']['preview'] = array(
+      '#type' => 'button',
+      '#value' => 'Preview',
+      '#weight' => -10,
+      '#ajax' => array(
+        'callback' => 'formio_ajax_update_preview',
+        'wrapper' => 'formio-form-render',
+        'path' => 'system/formio_ajax',
+        'method' => 'replace',
+      ),
+    );
+
+    // Seems to be the best way to add #ajax to the block configure form.
+    // Add the ajax callback for the preview. We want to trigger a preview
+    // when the checkbox is selected and also when the theme is changed.
+//    $form['settings']['formio']['enable']['#ajax'] = $form['settings']['formio']['theme']['#ajax'] = array(
+//      'callback' => 'formio_ajax_update_preview',
+//      'wrapper' => 'formio-form-render',
+//      'path' => 'system/formio_ajax',
+//      'method' => 'replace',
+//    );
+//    $form['settings']['formio']['theme']['#attached'] = array(
+//      'library' => array(
+//        array('formio', 'seamless'),
+//      ),
+//      'js' => array(
+//        drupal_get_path('module', 'formio') . '/js/formio.js' => array(NULL, 'module'),
+//      ),
+//    );
+//    _formio_attach_js($form);
+  }
+  if ($form_id === 'panels_panel_context_edit_content') {
+    // Just add the seamless library to the parent page.
+    drupal_add_library('formio', 'seamless');
+  }
+  // Does the same for panels.
+  if (strpos($form_id, '_content_type_edit_form')) {
+    // Let ctools include the panels plugins and ctools content.inc.
+    ctools_include('plugins', 'panels');
+    ctools_include('content');
+
+    // Get the Panels display and the current Pane (if there is one).
+    $display = $form_state['display'];
+    if ($form_id == 'panels_edit_style_settings_form') {
+      if ($form_state['type'] == 'pane') {
+        $pane = $display->content[$form_state['pid']];
+      }
+      else {
+        // For region styles, we don't have a pane.
+        $pane = NULL;
+      }
+    }
+    else {
+      $pane = $form_state['pane'];
+    }
+
+    if (!empty($pane->configuration)) {
+      $configuration = ($form_state['rebuild'] && (strpos($form_id, 'content_type_edit_form'))) ? array_merge($pane->configuration, $form_state['input']) : $pane->configuration;
+    }
+    else {
+      $configuration = $form_state['input'];
+    }
+
+    // Just pass empty arrays.
+    $keywords = array();
+    $args = array();
+
+    if (!empty($form_state['contexts'])) {
+      $context = $form_state['contexts'];
+    }
+    elseif (!empty($form_state['display']->context)) {
+      $context = $form_state['display']->context;
+    }
+    else {
+      $context = array();
+    }
+
+    // Only render preview for Panes and not Regions.
+    if (isset($pane)) {
+      // Get the pane style.
+      $style = (isset($pane->style['style'])) ? panels_get_style($pane->style['style']) : NULL;
+      // Creates preview outside of form itself to fix various bugs, like form
+      // inside form and double rendering.
+      $form['#post_render'][] = 'formio_form_post_render_preview';
+      $form['#formio_preview_info'] = array(
+        'preview_callback' => isset($preview_callback) ? $preview_callback : NULL,
+        'pane' => $pane,
+        'configuration' =>  $configuration,
+        'keywords' => $keywords,
+        'args' => $args,
+        'context' => $context,
+        'style' => $style,
+        'display' => $display,
+      );
+
+      // Remove the clearfix for preview floating
+      if (isset($form['aligner_start'])) {
+        $form['aligner_start']['#markup'] = str_replace('clearfix', '', $form['aligner_start']['#markup']);
+      }
+
+      $preview_attributes = array(
+//        'style' => 'display: none',
+        'class' => array(
+          'formio-preview-button',
+//          'ctools-auto-submit-click',
+        ),
+      );
+
+      ctools_include('export');
+      $export = ctools_export_crud_load($pane->type, $pane->subtype);
+
+      $form['formio']['enable'] = array(
+        '#type' => 'checkbox',
+        '#title' => t('Use bootswatch'),
+        '#default_value' => isset($export->enable) ? $export->enable : 0,
+      );
+
+      $form['formio']['theme'] = array(
+        '#title' => t('Bootswatch Theme'),
+        '#default_value' => isset($export->theme) ? $export->theme : 'paper',
+        '#states' => array(
+          'invisible' => array(
+            ':input[name="enable"]' => array('checked' => FALSE),
+          ),
+        ),
+      );
+
+      // Get possible Bootswatch themes from the Bootswatch api.
+      $swatches = formio_bootswatch();
+      // If we have trouble communicating with the api then just present the user
+      // with a textfield so they can enter the name of the theme.
+      if ($swatches == FALSE) {
+        $form['formio']['theme']['#type'] = 'textfield';
+      }
+      // If we got a successful response from Bootswatch then populate a select
+      // list with the options.
+      else {
+        $form['formio']['theme']['#type'] = 'select';
+        $form['formio']['theme']['#options'] = $swatches;
+      }
+
+      // Create the preview refresh button
+      $form['buttons']['preview'] = array(
+        '#type' => 'button',
+        '#value' => t('Update Preview'),
+        '#attributes' => $preview_attributes,
+        '#ajax' => array(
+          'callback' => 'formio_ajax_update_preview',
+          'wrapper' => 'formio-form-widget-preview',
+          'path' => 'system/formio_ajax',
+        ),
+      );
+
+      // Autosubmit the form
+      ctools_add_js('auto-submit');
+      $form['#attributes']['class'][] = 'ctools-auto-submit-full-form';
+    }
+
+//    $form['buttons']['cancel']['#access'] = FALSE;
+    if (!empty($form['buttons']['return'])) {
+      $form['buttons']['return']['#value'] = t('Save');
+    }
+    $form['buttons']['#weight'] = 100;
+
+    // Attach javascript.
+//    _formio_attach_js($form);
+  }
+}
+
+/**
+ * Implements template_preprocess_TEMPLATE().
+ */
+function template_preprocess_formio_preview(&$vars) {
+  if (!empty($vars['single'])) {
+    $vars['attributes_array']['id'] = 'formio-form-widget-preview';
+    $vars['classes_array'][] = 'formio-preview-single';
+  }
+}
+
+/**
+ * Implements template_preprocess_TEMPLATE_link().
+ */
+function template_preprocess_formio_preview_link(&$vars) {
+  $vars['classes_array'][] = 'formio-preview-link';
+  $vars['classes_array'][] = 'clearfix';
+}
+
+/**
+ * Returns HTML for a preview link.
+ */
+function theme_formio_preview_link($vars) {
+  // When using a theme function and not a template, template_preprocess()
+  // does not run so deal with 'classes_array' directly.
+  $classes = implode(' ', $vars['classes_array']);
+
+  $html = '';
+  $html .= '<div class="' . $classes . '">';
+  $html .= $vars['preview_link'];
+  $html .= $vars['add_link'];
+  $html .= '</div>';
+  return $html;
+}
+
+/**
+ * Process the panels_add_content_modal() to adjust the markup to present the preview
+ */
+function formio_process_panels_add_content_modal(&$vars) {
+
+  $content = !empty($vars['categories'][$vars['category']]['content']) ? $vars['categories'][$vars['category']]['content'] : array();
+
+  // If no category is selected or the category is empty or our special empty
+  // category render a 'header' that will appear instead of the columns.
+  if (empty($vars['category']) || empty($content) || $vars['category'] == 'root') {
+    // Nothing to do since there is no preview
+  }
+  else if ($vars['category'] === 'form-io') {
+//    $titles = array_keys($content);
+//    natcasesort($titles);
+//    $col_size = count($titles) / $vars['column_count'];
+//
+//    // Zero out the existing column data
+//    $count = 0;
+//    foreach ($titles as $title) {
+//      $which = floor($count++ / $col_size) + 1;
+//      $vars['columns'][$which] = '';
+//    }
+//
+//    // Render the single preview.
+//    $title = $vars['preview_single_title'];
+//
+//    $legend_title = !empty($title) ? $title : t('Select a widget to show its preview');
+//    $add_content_link = !empty($title) ? _formio_render_add_content_link($vars, $content[$title], $title) : '';
+//    $preview = !empty($vars['preview_single']) ? $vars['preview_single'] : t('No Preview');
+//
+//    $vars['columns'][0] = theme('formio_preview', array(
+//      'title' => $legend_title,
+//      'add_link' => $add_content_link,
+//      'preview' => $preview,
+//    ));
+//
+//    // Read the column data with our preview functionality
+//    $count = 0;
+//    foreach ($titles as $title) {
+//      $which = floor($count++ / $col_size) + 1;
+//
+//      $legend_title = $content[$title]['title'];
+//      $add_content_link = _formio_render_add_content_link($vars, $content[$title], $title);
+//
+//      $vars['columns'][$which] .= theme('formio_preview_link', array(
+//        'preview_link' => $legend_title,
+//        'add_link' => $add_content_link,
+//      ));
+//    }
+
+//      if ($use_preview == PANOPOLY_ADD_PREVIEW_SINGLE) {
+//        $vars['columns'][$which] .= theme('panopoly_magic_preview_link', array(
+//          'preview_link' => $legend_title,
+//          'add_link' => $add_content_link,
+//        ));
+//      }
+//      else {
+//        $preview = !empty($content[$title]['preview']) ? $content[$title]['preview'] : t('No Preview');
+//        $vars['columns'][$which] .= theme('panopoly_magic_preview', array(
+//          'title' => $legend_title,
+//          'add_link' => $add_content_link,
+//          'preview' => $preview,
+//        ));
+//      }
+//    }
+  }
+}
+
+/**
+ * Attach the seamless library to forms using the preview.
+ */
+function _formio_attach_js(&$element) {
+  if (!empty($element['#ajax'])
+      && isset($element['#ajax']['callback'])
+      && $element['#ajax']['callback'] == 'formio_ajax_update_preview') {
+    // Add the seamless library and our js.
+    $element['#attached']['library'][] = array('formio', 'seamless');
+    $element['#attached']['js'][] = array(
+      drupal_get_path('module', 'formio') . '/js/formio.js' => array(
+        NULL,
+        'module',
+      )
+    );
+  }
+  foreach (element_children($element) as $key) {
+    _formio_attach_js($element[$key]);
+  }
+}
+
+/**
+ * Attach the seamless library to forms.
+ */
+function _formio_add_path_to_ajax($element) {
+  if (!empty($element['#ajax']) && !isset($element['#ajax']['path'])) {
+    $element['#ajax']['path'] = 'system/panopoly-magic';
+  }
+  foreach (element_children($element) as $key) {
+    _formio_add_path_to_ajax($element[$key]);
+  }
 }
 
 /**
@@ -518,59 +1164,38 @@ function formio_preview_ajax_form(&$form) {
     '#type' => 'fieldset',
     '#title' => t('Form Preview'),
   );
+  $id = drupal_html_id('formio-form-render');
   $form['formio_render']['formio_display'] = array(
-    '#markup' => '<div id="formio-form-render"></div>',
+    '#markup' => '<div id="' . $id . '"></div>',
   );
 }
 
 /**
- * Ajax callback to render a preview of the form.
+ * Determine whether a field has any data.
  *
- * Renders the Form IO form that is selected.
+ * This is basically field_has_data() with a slight modification.
  *
- * @param array $form
- *   Form that triggered the callback.
- * @param array $form_state
- *   State of the form.
- * @param bool $is_new
- *   Lets us know if this is being called on a new export form.
+ * @param $field
+ *   A field structure.
+ * @param string $bundle
+ *   The entity bundle.
  *
- * @return array
- *   Ajax commands.
+ * @return bool
+ *   TRUE if the field, for a particular bundle, has data. FALSE otherwise.
  */
-function formio_preview_ajax_callback($form, $form_state, $is_new = TRUE) {
-  $commands = array();
-  $conf = $form_state['values'];
-  $conf['is_new'] = ($form['#form_id'] === 'block_admin_configure') ? FALSE : $is_new;
-  $commands[] = ajax_command_html('#formio-form-render', formio_render($conf));
+function formio_bundle_field_has_data($field, $bundle) {
+  $query = new EntityFieldQuery();
+  $query = $query->fieldCondition($field)
+    ->entityCondition('bundle', $bundle)
+    ->range(0, 1)
+    ->count()
+    // Neutralize the 'entity_field_access' query tag added by
+    // field_sql_storage_field_storage_query(). The result cannot depend on the
+    // access grants of the current user.
+    ->addTag('DANGEROUS_ACCESS_CHECK_OPT_OUT');
 
-  // Return commands to the system to be executed.
-  return array('#type' => 'ajax', '#commands' => $commands);
-}
-
-/**
- * Implements hook_form_alter().
- */
-function formio_form_alter(&$form, &$form_state, $form_id) {
-  if ($form_id === 'block_admin_configure' && strpos($form['delta']['#value'], 'formio:') !== FALSE) {
-
-    // Add the ajax callback for the preview. We want to trigger a preview
-    // when the checkbox is selected and also when the theme is changed.
-    $form['settings']['formio']['enable']['#ajax'] = $form['settings']['formio']['theme']['#ajax'] = array(
-      'callback' => 'formio_preview_ajax_callback',
-      'wrapper' => 'formio-form-render',
-      'path' => 'system/formio_ajax',
-      'method' => 'replace',
-    );
-    $form['settings']['formio']['theme']['#attached'] = array(
-      'library' => array(
-        array('formio', 'seamless'),
-      ),
-      'js' => array(
-        drupal_get_path('module', 'formio') . '/js/formio.js' => array(NULL, 'module'),
-      ),
-    );
-  }
+  $result = $query->execute();
+  return (bool) $result;
 }
 
 /**
@@ -589,4 +1214,32 @@ function formio_api_class() {
 
 function formio_apikey() {
   return Formio::apiKey();
+}
+
+/**
+ * Get a specific form.
+ *
+ * @param string $id
+ *   The unique string that represents a Formio form.
+ * @param bool $reset
+ *   Choose not to use static cache.
+ *
+ * @return object
+ *   The form object.
+ */
+function formio_get_form($_id, $reset = FALSE) {
+  static $drupal_static_fast;
+  if (!isset($drupal_static_fast)) {
+    $drupal_static_fast = &drupal_static(__FUNCTION__);
+  }
+  $forms = &$drupal_static_fast;
+  if (!$forms) {
+    $forms = array();
+  }
+
+  if ($reset || !isset($forms[$_id])) {
+    $formio = formio_rest('form/' . $_id);
+  }
+
+  return $formio->result;
 }

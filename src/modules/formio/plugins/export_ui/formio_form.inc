@@ -127,7 +127,7 @@ function formio_form_edit_form(&$form, &$form_state) {
         // can't be changed.
         $field_name = 'formio_' . $component['key'];
         $info = field_info_field($field_name);
-        if (!empty($info) && field_has_data($field_name)) {
+        if (!empty($info) && formio_bundle_field_has_data($info, $item->machine_name)) {
           $disabled = TRUE;
           break;
         }
@@ -144,7 +144,7 @@ function formio_form_edit_form(&$form, &$form_state) {
       '#suffix' => '</div>',
       '#disabled' => $disabled,
       '#ajax' => array(
-        'callback' => 'formio_preview_ajax_callback',
+        'callback' => 'formio_ajax_update_preview',
         'wrapper' => 'formio-form-render',
         'path' => 'system/formio_ajax',
         'method' => 'replace',
@@ -218,9 +218,23 @@ function formio_form_edit_form(&$form, &$form_state) {
       '#access' => $form_state['op'] === 'edit' && $item->export_type & EXPORT_IN_DATABASE,
       '#submit' => array('ctools_export_ui_edit_item_form_delete'),
     );
+
+    // Add a button to render the preview since it won't render on page load.
+    $form['buttons']['preview'] = array(
+      '#type' => 'button',
+      '#value' => 'Render preview',
+      '#weight' => -10,
+      '#ajax' => array(
+        'callback' => 'formio_ajax_update_preview',
+//        'wrapper' => 'formio-form-render',
+        'path' => 'system/formio_ajax',
+//        'method' => 'replace',
+      ),
+    );
+    formio_form_post_render_preview('', $form, $machine_name);
   }
 
-  formio_preview_ajax_form($form);
+//  formio_preview_ajax_form($form);
 }
 
 /**
@@ -291,7 +305,8 @@ function formio_form_edit_form_submit(&$form, &$form_state) {
 
   // Clear ctools object-cache.
   formio_clear_form_cache($bundle);
-  menu_rebuild();
+  module_invoke('system', 'cron');
+  module_invoke_all('flush_caches');
 }
 
 /**
@@ -370,7 +385,7 @@ function formio_add_field($bundle, $component) {
     field_create_field($field);
   }
   else {
-    if (!field_has_data($field)) {
+    if (!formio_bundle_field_has_data($field, $bundle)) {
       field_update_field($field);
     }
   }
@@ -399,7 +414,7 @@ function formio_add_field($bundle, $component) {
   }
   else {
     // If field has no data allow updating.
-    if (!field_has_data($field)) {
+    if (!formio_bundle_field_has_data($field, $bundle)) {
       field_update_instance($instance);
     }
   }
@@ -415,32 +430,4 @@ function formio_add_field($bundle, $component) {
 function formio_form_name_exists($machine_name, $element, &$form_state) {
   $name_exists = db_query_range('SELECT 1 FROM {formio_form} WHERE machine_name = :machine_name', 0, 1, array(':machine_name' => $machine_name))->fetchField();
   return $name_exists;
-}
-
-/**
- * Get a specific form.
- *
- * @param string $id
- *   The unique string that represents a Formio form.
- * @param bool $reset
- *   Choose not to use static cache.
- *
- * @return object
- *   The form object.
- */
-function formio_get_form($_id, $reset = FALSE) {
-  static $drupal_static_fast;
-  if (!isset($drupal_static_fast)) {
-    $drupal_static_fast = &drupal_static(__FUNCTION__);
-  }
-  $forms = &$drupal_static_fast;
-  if (!$forms) {
-    $forms = array();
-  }
-
-  if ($reset || !isset($forms[$_id])) {
-    $formio = formio_rest('form/' . $_id);
-  }
-
-  return $formio->result;
 }
